@@ -63,3 +63,4 @@ body[data-catalog=closed] .transition-status{bottom:84px}
 .catalog-toggle{bottom:181px}.scene-note{left:28px;right:auto;bottom:177px}
 body[data-catalog=closed] .scene-note{left:auto;right:28px;bottom:74px}
 @media(max-width:650px){.catalog-toggle{bottom:196px}.scene-note{left:auto;right:13px;bottom:247px}body[data-catalog=closed] .scene-note{left:auto;right:13px;bottom:70px}}
+.scene-ui:has(#object-card:not(.hidden)) .scene-note{display:none}
