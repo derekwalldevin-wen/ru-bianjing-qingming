@@ -59,3 +59,7 @@ body[data-catalog=closed] .transition-status{bottom:84px}
 .nearby-open{position:absolute;right:31px;top:455px;min-height:44px;max-width:100px;font-size:12px;padding:9px;background:var(--silk),var(--paper);border-color:var(--gold)}
 #places button.pending{border-color:var(--red);border-style:dashed}
 @media(max-width:650px){.nearby-open{right:13px;top:331px;max-width:72px;font-size:11px;padding:7px}.masthead:has(~ #scene-ui:not(.hidden)) #about-open{display:none}}
+/* Keep catalogue handles above the expanded scroll, rather than under it. */
+.catalog-toggle{bottom:181px}.scene-note{left:28px;right:auto;bottom:177px}
+body[data-catalog=closed] .scene-note{left:auto;right:28px;bottom:74px}
+@media(max-width:650px){.catalog-toggle{bottom:196px}.scene-note{left:auto;right:13px;bottom:247px}body[data-catalog=closed] .scene-note{left:auto;right:13px;bottom:70px}}

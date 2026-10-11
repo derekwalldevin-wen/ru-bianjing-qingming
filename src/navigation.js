@@ -4,12 +4,10 @@ import {createDirectionController} from '../vendor/cheoma-heading.js';
 import {places,tour} from './content.js';
 import {createWalkMotion} from './walk-motion.js';
 import {createSceneTransition} from './scene-transition.js';
+import {observations} from './observations.js';
+export {observations} from './observations.js';
 
 export const bridgeMarketPath=[[35,28,39],[24,30,15],[0,28,-3],[-22,25,-10],[-44,18,-8]];
-export const observations=[
- {place:0,title:'桥头木作',label:'细看桥头木作',point:[3.08,1.9,14.0],view:[5.6,2.8,17.1],look:[3.02,1.52,14.3],text:'看木板的接缝、栏杆的木销与斜撑。这里用原画的木构轮廓作依据，拼接细节为近景演绎。'},
- {place:3,title:'街市铺面',label:'细看街市铺面',point:[-29,2,-21],view:[-29,2.27,-16.4],look:[-29,1.85,-21.5],text:'走近檐下，看看木门槛、棚布与碗篮；脚下土路能辨认车辙和脚印。材料、器物摆放与商贩面貌为艺术补全。'}
-];
 
 export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>{},onTransition=()=>{},onError=()=>{}){
  const controls=new OrbitControls(camera,canvas);

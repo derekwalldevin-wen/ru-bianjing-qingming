@@ -1,7 +1,7 @@
 import {places,tour} from './content.js';
 import {readJourney,journeyLink} from './journey-state.js';
 import {createFrameMonitor} from './frame-monitor.js';
-import {observations} from './navigation.js';
+import {observations} from './observations.js';
 const initialJourney=readJourney(location.hash,places);
 const $=id=>document.getElementById(id),$$=sel=>[...document.querySelectorAll(sel)];
 const frameMonitor=createFrameMonitor(document.body,new URLSearchParams(location.search).has('qa'));
@@ -42,13 +42,13 @@ async function boot(){try{T=await import('three');const [{createWorld},{createNa
  }catch(err){failed=true;ready=false;$('load-progress').hidden=true;console.error('Scene initialization failed',err);$('load-state').textContent='三维视图暂不可用 · 仍可进入六景图像档案';$('enter').innerHTML='展阅六景 <span>↗</span>';['overview-mode','walk-mode','tour-mode'].forEach(id=>$(id).disabled=true);}}
 function commitLink(){const hash=new URL(journeyLink(location.href,places[current].id,night)).hash;history.replaceState(null,'',location.pathname+location.search+hash);}
 function setCatalog(open){document.body.dataset.catalog=open?'open':'closed';$('catalog-toggle').setAttribute('aria-expanded',String(open));$('catalog-toggle').textContent=open?'收起六景 ↓':'沿河六景 ↑';}
-$('catalog-toggle').onclick=()=>setCatalog(document.body.dataset.catalog!=='open');
+$('catalog-toggle').onclick=()=>{const open=document.body.dataset.catalog!=='open';if(open)hideObject();setCatalog(open);};
 setCatalog(true);
 function transitionChanged(state){$('silk-transition').style.opacity=String(state.opacity);$('transition-status').classList.toggle('hidden',!state.active);document.body.dataset.transition=state.active?state.kind:'idle';$('world').dataset.pendingPlace=state.pending?places[state.pending.index].id:'';$$('#places button').forEach((b,i)=>b.classList.toggle('pending',state.active&&i===state.pending.index));if(state.active)$('transition-name').textContent='前往 · '+places[state.pending.index].name;}
 $('transition-skip').onclick=()=>nav?.skip();
 function hideObject(){selectedObject=null;$('object-card').classList.add('hidden');}
 function syncObservations(){if(selectedObject&&selectedObject.place!==current)hideObject();const o=observations.find(o=>o.place===current);$('nearby-open').classList.toggle('hidden',!o||nav?.mode==='tour');if(o)$('nearby-open').textContent=o.place===0?'近看木作 ◎':'近看铺面 ◎';}
-function openObject(o){selectedObject=o;$('object-title').textContent=o.title;$('object-text').textContent=o.text;$('object-card').classList.remove('hidden');$('object-return').classList.toggle('hidden',!nav?.inspecting);}
+function openObject(o){selectedObject=o;if(nav?.mode==='walk')setCatalog(false);$('object-title').textContent=o.title;$('object-text').textContent=o.text;$('object-card').classList.remove('hidden');$('object-return').classList.toggle('hidden',!nav?.inspecting);}
 observations.forEach((o,i)=>{const b=document.createElement('button');b.className='observation-pin';b.textContent=o.title;b.setAttribute('aria-label',o.label);b.dataset.observation=String(i);b.onclick=()=>openObject(o);$('observation-pins').append(b);});
 $('nearby-open').onclick=()=>{const o=observations.find(o=>o.place===current);if(o)openObject(o);};
 $('object-inspect').onclick=()=>{if(selectedObject&&nav?.inspect(selectedObject)){$('object-return').classList.remove('hidden');setCatalog(false);document.body.dataset.inspecting='true';}};
