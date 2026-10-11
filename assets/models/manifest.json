@@ -261,5 +261,20 @@
     ]
   },
   "baseEncodingReceiptDirectory": "blender/web-ready-base-v2",
-  "initialModelBytes": 8324536
+  "initialModelBytes": 8324536,
+  "enhancements": [
+    {
+      "kind": "boatdetail",
+      "file": "boat-observation.glb",
+      "bytes": 1165688,
+      "sha256": "a69b37f1b9e60d2b7652b0450e397db0d0e5f7a493194c53863c8bdd540471ec",
+      "sourcePath": "blender/boat-observation-v1/boat-observation.glb",
+      "originalBytes": 2169292,
+      "originalSha256": "851fd2df48159897c62df3fe46a4e2961245171ed0c32bc63a921df37c49079a",
+      "encodingReceiptDirectory": "blender/web-ready-boat-v1",
+      "triangles": 17636,
+      "primitives": 4,
+      "scope": "One anchored quay-side cargo boat, requested by its observation card; excluded from initial models"
+    }
+  ]
 }

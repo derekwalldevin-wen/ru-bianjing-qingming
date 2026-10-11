@@ -24,7 +24,8 @@ function startEnhancements(kit){
 function syncEnhancements(){
  if(!enhancements)return;
  const needs=[['bridge','closeup','architecture'],['life','architecture'],['architecture','closeup'],['closeup','architecture','life'],['architecture','life'],['life','architecture']][current];
- enhancements.setDesired(entered&&ready&&($('quality').value!=='low'||selectedObject)?needs.filter(kind=>enhancementKinds.includes(kind)):[]);
+ const selectedNeed=selectedObject?.enhancement&&selectedObject.place===current?[selectedObject.enhancement]:[];
+ enhancements.setDesired(entered&&ready&&($('quality').value!=='low'||selectedObject)?[...needs,...selectedNeed].filter(kind=>enhancementKinds.includes(kind)):[]);
 }
 let entered=false,nav,world,renderer,camera,scene,T,night=initialJourney.night,ready=false,failed=false,current=initialJourney.index,animTime=0,reduced=matchMedia('(prefers-reduced-motion: reduce)').matches,toastTimer;
 let visited=new Set();try{visited=new Set(JSON.parse(localStorage.getItem('bianjing-visited')||'[]').filter(x=>places.some(p=>p.id===x)));}catch{}
@@ -67,7 +68,7 @@ setCatalog(true);
 function transitionChanged(state){$('silk-transition').style.opacity=String(state.opacity);$('transition-status').classList.toggle('hidden',!state.active);document.body.dataset.transition=state.active?state.kind:'idle';$('world').dataset.pendingPlace=state.pending?places[state.pending.index].id:'';$$('#places button').forEach((b,i)=>b.classList.toggle('pending',state.active&&i===state.pending.index));if(state.active)$('transition-name').textContent='前往 · '+places[state.pending.index].name;}
 $('transition-skip').onclick=()=>nav?.skip();
 function hideObject(){selectedObject=null;syncEnhancements();$('object-card').classList.add('hidden');}
-function syncObservations(){if(selectedObject&&selectedObject.place!==current)hideObject();const o=observations.find(o=>o.place===current);$('nearby-open').classList.toggle('hidden',!o||nav?.mode==='tour');if(o)$('nearby-open').textContent=o.place===0?'近看木作 ◎':'近看铺面 ◎';}
+function syncObservations(){if(selectedObject&&selectedObject.place!==current)hideObject();const o=observations.find(o=>o.place===current);$('nearby-open').classList.toggle('hidden',!o||nav?.mode==='tour');if(o)$('nearby-open').textContent=o.openLabel||(o.place===0?'近看木作 ◎':'近看铺面 ◎');}
 function openObject(o){selectedObject=o;syncEnhancements();if(nav?.mode==='walk')setCatalog(false);$('object-title').textContent=o.title;$('object-text').textContent=o.text;$('object-card').classList.remove('hidden');$('object-return').classList.toggle('hidden',!nav?.inspecting);}
 observations.forEach((o,i)=>{const b=document.createElement('button');b.className='observation-pin';b.textContent=o.title;b.setAttribute('aria-label',o.label);b.dataset.observation=String(i);b.onclick=()=>openObject(o);$('observation-pins').append(b);});
 $('nearby-open').onclick=()=>{const o=observations.find(o=>o.place===current);if(o)openObject(o);};

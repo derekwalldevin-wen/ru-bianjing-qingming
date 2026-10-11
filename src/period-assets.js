@@ -12,7 +12,7 @@ export function prepareAssetKit(scenes,collisionBounds){
   scene.updateMatrixWorld(true);
   if(kind==='bridge')templates.set('bridge',scene);
   scene.traverse(o=>{
-   if(requiredTemplates.includes(o.name)||['detail_bridge','detail_market'].includes(o.name))templates.set(o.name,o);
+   if(requiredTemplates.includes(o.name)||['detail_bridge','detail_market','detail_cargo_boat'].includes(o.name))templates.set(o.name,o);
    if(o.isMesh){
     o.castShadow=o.receiveShadow=true;
     const list=Array.isArray(o.material)?o.material:[o.material];
@@ -34,6 +34,11 @@ export async function loadPeriodAssets(onProgress=()=>{}){
  const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),scenes={},loadTimings=[];let done=0;
  const manifest=await fetch(new URL('../assets/models/manifest.json',import.meta.url),{cache:'no-cache',signal:AbortSignal.timeout(30000)}).then(r=>{if(!r.ok)throw new Error('模型清单读取失败');return r.json();});
  const entries=Object.fromEntries(Object.entries(assetFiles).map(([kind,file])=>[kind,manifest.assets.find(a=>a.file===file)])),received={};
+ const optional={};
+ for(const entry of manifest.enhancements||[]){
+  if(entry.kind!=='boatdetail'||entry.file!=='boat-observation.glb'||!Number.isInteger(entry.bytes)||entry.bytes<=0||!/^[a-f0-9]{64}$/.test(entry.sha256))throw new Error('增强模型清单不完整');
+  optional[entry.kind]=entry;
+ }
  const qa=typeof location==='undefined'?null:new URLSearchParams(location.search),fullReference=qa?.has('qa')&&qa.get('full-models')==='1';
  for(const entry of Object.values(entries))if(!entry)throw new Error('模型清单不完整');
  const initial=Object.fromEntries(Object.entries(entries).map(([kind,entry])=>[kind,fullReference?entry:entry.base||entry]));
@@ -58,8 +63,8 @@ export async function loadPeriodAssets(onProgress=()=>{}){
  const kit=prepareAssetKit(scenes,manifest.collisionBounds);
  kit.initialBytes=totalBytes;
  kit.loadTimings=loadTimings;kit.fullReference=fullReference;
- kit.enhancementKinds=fullReference?[]:Object.keys(entries).filter(kind=>entries[kind].base);
- kit.loadEnhancement=(kind,signal,onBytes)=>load(entries[kind],signal,onBytes,qa?.has('qa')&&qa.get('fail-enhancement')===kind);
+ kit.enhancementKinds=[...(fullReference?[]:Object.keys(entries).filter(kind=>entries[kind].base)),...Object.keys(optional)];
+ kit.loadEnhancement=(kind,signal,onBytes)=>load(entries[kind]||optional[kind],signal,onBytes,qa?.has('qa')&&qa.get('fail-enhancement')===kind);
  kit.discardEnhancement=scene=>disposeAssetScene(scene);
  return kit;
 }

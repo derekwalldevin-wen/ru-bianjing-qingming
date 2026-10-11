@@ -134,7 +134,7 @@ export function createWorld(scene,kit){
  const lighting=createLighting(scene,m,river.material,lanternLocations);
  const enhancedKinds=new Set();let assetQuality='standard',anisotropy=4;
  function upgradeAsset(kind,nextScene){
-  if(!['architecture','bridge','life','closeup'].includes(kind))throw new Error('Unsupported visual enhancement '+kind);
+  if(!['architecture','bridge','life','closeup','boatdetail'].includes(kind))throw new Error('Unsupported visual enhancement '+kind);
   if(enhancedKinds.has(kind)){disposeAssetScene(nextScene,[scene,...Object.values(kit.scenes)]);return;}
   const previous=kit.scenes[kind],candidate=prepareAssetKit({...kit.scenes,[kind]:nextScene},kit.collisionBounds);
   candidate.setQuality(assetQuality,anisotropy);
@@ -142,13 +142,20 @@ export function createWorld(scene,kit){
    const selected=new Map([...placements].filter(([name])=>name.startsWith('building_')===(kind==='architecture')));
    const staging=new T.Group(),nextBatches=createAssetInstances(staging,candidate,selected);
    const oldBatches=assetBatches.filter(mesh=>[...selected.keys()].some(name=>mesh.name.startsWith(`精修/${name}/`)));
-   const nextBoats=kind==='life'?boats.map(b=>createAssetObject(candidate,b.name)):[];
+   const nextBoats=kind==='life'?boats.map((b,i)=>i===0&&enhancedKinds.has('boatdetail')?null:createAssetObject(candidate,b.name)):[];
    // All construction and validation succeeded. Commit synchronously between
    // frames; crowd, collision proxies, clock and group transforms never reset.
    for(const mesh of oldBatches){scene.remove(mesh);mesh.dispose();assetBatches.splice(assetBatches.indexOf(mesh),1);}
    for(const mesh of nextBatches){scene.add(mesh);assetBatches.push(mesh);}
-   nextBoats.forEach((g,i)=>replaceObjectVisual(boats[i].g,g,[boats[i].worker]));
+   nextBoats.forEach((g,i)=>{if(g)replaceObjectVisual(boats[i].g,g,[boats[i].worker]);});
   }else if(kind==='bridge')replaceObjectVisual(bridgeObject,createAssetObject(candidate,'bridge'));
+  else if(kind==='boatdetail'){
+   const visual=createAssetObject(candidate,'detail_cargo_boat');
+   replaceObjectVisual(boats[0].g,visual,[boats[0].worker]);
+   // The refined working deck is a visible surface, rather than an invisible
+   // height offset; its top is 0.660m in the boat's local coordinate system.
+   boats[0].worker.position.set(3.98,.665,.17);
+  }
   else closeups.replaceVisuals(candidate);
   Object.assign(kit,candidate);enhancedKinds.add(kind);
   disposeAssetScene(previous,[scene,...Object.values(kit.scenes)]);
