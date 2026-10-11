@@ -4,7 +4,7 @@ import {createLighting} from './lighting.js';
 import {createRiver} from './river.js';
 import {applySurfaceTextures,projectSurfaceUV} from './surface-textures.js';
 import {createDetailBuilder} from './details.js';
-import {createAssetInstances,createAssetObject} from './period-assets.js';
+import {createAssetInstances,createAssetObject,prepareAssetKit,disposeAssetScene,replaceObjectVisual} from './period-assets.js';
 import {createPeriodCrowd} from './period-crowd.js';
 import {circleHitsBox} from './crowd-motion.js';
 import {createCloseupDetails,closeupFloor} from './closeup-details.js';
@@ -61,7 +61,7 @@ export function createWorld(scene,kit){
   }
  }
  place('building_gate',88,-43,{yaw:Math.PI/2});collision(88,-48,4,2);collision(88,-38,4,2);buildingCount++;
- scene.add(createAssetObject(kit,'bridge'));
+ const bridgeObject=createAssetObject(kit,'bridge');scene.add(bridgeObject);
  // Bridge-end bird standards are visible in the painting; function is debated.
  for(const side of [-1,1])for(const x of [-4.35,4.35]){const z=side*12.6;post(m.pale,[x,4.65,z],.095,8.1);beam([x-1,7.4,z],[x+1,7.4,z],.08);beam([x,7.7,z-.5],[x,7.7,z+.5],.065);add(orb,m.pale,[x,8.83,z],[.24,.11,.10]);beam([x+.15,8.85,z],[x+.2,9.1,z],.045,m.pale);beam([x+.18,9.1,z],[x+.38,9.08,z],.035,m.dark);}
  const details=createDetailBuilder({add,cube,post,beam,m}),lanternLocations=details.lanterns();
@@ -99,7 +99,7 @@ export function createWorld(scene,kit){
  for(const side of [-1,1])for(let i=0;i<24;i++)place(i%3===0?'tree_bare':'tree_willow',-118+i*10+rnd()*3,side*(66+rnd()*9),{scale:.78+rnd()*.35,yaw:rnd()*6.28});
  place('cart_ox',59,-16.3,{yaw:Math.PI/2});collision(59,-16.3,3.2,1.12);place('cart_hand',-57,18.3,{yaw:-Math.PI/2});collision(-57,18.3,1.8,.85);place('cart_hand',-35,-18.4,{yaw:Math.PI/2,scale:.9});collision(-35,-18.4,1.6,.8);place('cart_ox',77,18.4,{yaw:-Math.PI/2,scale:.92});collision(77,18.4,3,1.1);
  const river=createRiver(scene);
- function boat(name,x,z,size,moving=false){const g=createAssetObject(kit,name);g.position.set(x,.17,z);g.scale.setScalar(size);scene.add(g);const worker=createAssetObject(kit,'person_boatman');worker.position.set(name==='boat_cargo'?3.6:2.1,.75,.15);worker.rotation.y=Math.PI/2;g.add(worker);boats.push({g,x,z,moving,phase:rnd()*6});}
+ function boat(name,x,z,size,moving=false){const g=createAssetObject(kit,name);g.position.set(x,.17,z);g.scale.setScalar(size);scene.add(g);const worker=createAssetObject(kit,'person_boatman');worker.position.set(name==='boat_cargo'?3.6:2.1,.75,.15);worker.rotation.y=Math.PI/2;g.add(worker);boats.push({g,worker,name,x,z,moving,phase:rnd()*6});}
  boat('boat_cargo',-38,4.8,1);boat('boat_cargo',42,4.8,.92);boat('boat_cargo',-23,-5.8,1.06);boat('boat_cargo',8,-1.8,.96,true);boat('boat_skiff',72,1.9,1,true);
  const roles=['vendor','porter','vendor','scholar','porter','vendor','woman','vendor','boatman','child','vendor','scholar'];
  function person(role,x,z,data={}){persons.push({role,x,z,scale:.95+rnd()*.1,phase:rnd()*6.28,activity:'stand',yaw:0,...data});}
@@ -114,7 +114,12 @@ export function createWorld(scene,kit){
   const root=kit.templates.get(name),bounds=new T.Box3(),vertex=new T.Vector3();root.updateWorldMatrix(true,true);
   for(const item of items){
    bounds.makeEmpty();dummy.position.set(item.x,item.y,item.z);dummy.rotation.set(0,item.yaw,0);dummy.scale.setScalar(item.scale);dummy.updateMatrix();
-   root.traverse(o=>{if(!o.isMesh)return;const a=o.geometry.attributes.position;for(let i=0;i<a.count;i++){vertex.fromBufferAttribute(a,i).applyMatrix4(o.matrixWorld);if(vertex.y>2.1)continue;vertex.applyMatrix4(dummy.matrix);bounds.expandByPoint(vertex);}});
+   const proxy=kit.collisionBounds?.[name];
+   if(proxy){
+    // High-detail canonical low-height bounds, available before any download.
+    // An enhanced hull, cart shaft or trunk cannot grow into a free walkway.
+    for(const x of [proxy[0][0],proxy[1][0]])for(const z of [proxy[0][1],proxy[1][1]])bounds.expandByPoint(vertex.set(x,0,z).applyMatrix4(dummy.matrix));
+   }else root.traverse(o=>{if(!o.isMesh)return;const a=o.geometry.attributes.position;for(let i=0;i<a.count;i++){vertex.fromBufferAttribute(a,i).applyMatrix4(o.matrixWorld);if(vertex.y>2.1)continue;vertex.applyMatrix4(dummy.matrix);bounds.expandByPoint(vertex);}});
    if(!bounds.isEmpty())collision((bounds.min.x+bounds.max.x)/2,(bounds.min.z+bounds.max.z)/2,(bounds.max.x-bounds.min.x)/2+.03,(bounds.max.z-bounds.min.z)/2+.03);
   }
  }
@@ -127,10 +132,31 @@ export function createWorld(scene,kit){
  const crowd=createPeriodCrowd(scene,kit,persons,bridgeHeight,clearPerson,floor),assetBatches=createAssetInstances(scene,kit,placements);
  for(const [material,geometries] of batches){const mesh=new T.Mesh(mergeGeometries(geometries),material);mesh.name='街巷/岸坡与细部';mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);geometries.forEach(g=>g.dispose());}batches.clear();
  const lighting=createLighting(scene,m,river.material,lanternLocations);
+ const enhancedKinds=new Set();let assetQuality='standard',anisotropy=4;
+ function upgradeAsset(kind,nextScene){
+  if(!['architecture','bridge','life','closeup'].includes(kind))throw new Error('Unsupported visual enhancement '+kind);
+  if(enhancedKinds.has(kind)){disposeAssetScene(nextScene,[scene,...Object.values(kit.scenes)]);return;}
+  const previous=kit.scenes[kind],candidate=prepareAssetKit({...kit.scenes,[kind]:nextScene},kit.collisionBounds);
+  candidate.setQuality(assetQuality,anisotropy);
+  if(kind==='architecture'||kind==='life'){
+   const selected=new Map([...placements].filter(([name])=>name.startsWith('building_')===(kind==='architecture')));
+   const staging=new T.Group(),nextBatches=createAssetInstances(staging,candidate,selected);
+   const oldBatches=assetBatches.filter(mesh=>[...selected.keys()].some(name=>mesh.name.startsWith(`精修/${name}/`)));
+   const nextBoats=kind==='life'?boats.map(b=>createAssetObject(candidate,b.name)):[];
+   // All construction and validation succeeded. Commit synchronously between
+   // frames; crowd, collision proxies, clock and group transforms never reset.
+   for(const mesh of oldBatches){scene.remove(mesh);mesh.dispose();assetBatches.splice(assetBatches.indexOf(mesh),1);}
+   for(const mesh of nextBatches){scene.add(mesh);assetBatches.push(mesh);}
+   nextBoats.forEach((g,i)=>replaceObjectVisual(boats[i].g,g,[boats[i].worker]));
+  }else if(kind==='bridge')replaceObjectVisual(bridgeObject,createAssetObject(candidate,'bridge'));
+  else closeups.replaceVisuals(candidate);
+  Object.assign(kit,candidate);enhancedKinds.add(kind);
+  disposeAssetScene(previous,[scene,...Object.values(kit.scenes)]);
+ }
  function update(time,dt,reduced,night,camera,visitor){closeups.update(camera);lighting.update(time,dt,night,reduced,camera);for(const b of boats){b.g.position.y=.17+(reduced?0:Math.sin(time*.6+b.phase)*.025);b.g.position.x=b.moving&&!reduced?((b.x+time*.36+108)%216)-108:b.x;}river.update(dt,reduced,boats,lighting);crowd.update(time,reduced,camera,visitor);for(const f of flags)f.mesh.rotation.y=reduced?0:Math.sin(time*.7+f.x)*.025;}
  function valid(x,z){if(Math.abs(x)>104||Math.abs(z)>70)return false;if(Math.abs(z)<11.8&&Math.abs(x)>2.65)return false;return !colliders.some(c=>Math.abs(x-c.x)<c.w+.28&&Math.abs(z-c.z)<c.d+.28);}
  function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:closeupFloor(x,z,.62);}
  function canWalk(x,z){return valid(x,z)&&crowd.motion.validVisitor(x,z);}
  function walkSpawn(x,z){for(let ring=0;ring<16;ring++){const n=ring?ring*8:1;for(let i=0;i<n;i++){const xx=x+Math.cos(i/n*Math.PI*2)*ring*.2,zz=z+Math.sin(i/n*Math.PI*2)*ring*.2;if(canWalk(xx,zz))return [xx,zz];}}return null;}
- return {update,valid,canWalk,walkSpawn,clearPerson,floor,closeups,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,setLighting:lighting.configure,setQuality(value,maxAnisotropy){closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
+ return {update,valid,canWalk,walkSpawn,clearPerson,floor,closeups,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
 }

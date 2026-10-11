@@ -12,7 +12,16 @@
       "originalBytes": 5916932,
       "originalSha256": "183bdff824d931ffa19ddb05d72949a532bd6c3a99dd6bff9e29127c06ec4b4f",
       "encoding": "lossless Meshopt 0.22 + pixel-exact WebP",
-      "sourcePath": "blender/cinematic-timbers-v1/bridge-timbers.glb"
+      "sourcePath": "blender/cinematic-timbers-v1/bridge-timbers.glb",
+      "base": {
+        "file": "base/hongqiao-refined.glb",
+        "bytes": 1731736,
+        "sha256": "7395e583c6b38608100b73f56222311b9a200192212975e01fd899ad4951e436",
+        "sourcePath": "blender/progressive-base-v1/bridge-base.glb",
+        "originalBytes": 2857984,
+        "originalSha256": "496c0e9bf84e8aa84e6206d4f76ac41e4e42a4e205c197b800885e7dd0d8f976",
+        "encoding": "Lower-detail 128px source; lossless Meshopt + pixel-exact WebP relative to that base source"
+      }
     },
     {
       "file": "period-architecture.glb",
@@ -21,7 +30,16 @@
       "originalBytes": 9014376,
       "originalSha256": "5b057d68529ba5652a82180e27bf3db50008cbecd61737de2dc16e7f398cc81e",
       "encoding": "lossless Meshopt 0.22 + pixel-exact WebP",
-      "sourcePath": "blender/cinematic-timbers-v1/architecture-timbers.glb"
+      "sourcePath": "blender/cinematic-timbers-v1/architecture-timbers.glb",
+      "base": {
+        "file": "base/period-architecture.glb",
+        "bytes": 2634736,
+        "sha256": "61970093cf98e2aae2910666ce49d7dae29c1f8868777825cb1e46e2aec83b2d",
+        "sourcePath": "blender/progressive-base-v2/architecture-base.glb",
+        "originalBytes": 4231212,
+        "originalSha256": "8bee3ca842d7e943bd3e6b64e5c120cca74784517ff39cadffd001886b5e760a",
+        "encoding": "Lower-detail 128px source; lossless Meshopt + pixel-exact WebP relative to that base source"
+      }
     },
     {
       "file": "period-life.glb",
@@ -30,7 +48,16 @@
       "originalBytes": 3746944,
       "originalSha256": "495debc7e92c62face3fe790873bb668d64997931da61e82926eca1c5408f5b7",
       "encoding": "lossless Meshopt 0.22 + pixel-exact WebP",
-      "sourcePath": "blender/period-life/kit.glb"
+      "sourcePath": "blender/period-life/kit.glb",
+      "base": {
+        "file": "base/period-life.glb",
+        "bytes": 2303636,
+        "sha256": "d450729d59e7d793dad57f1c101c24b1a2a4db94aa5dfa11b3d25fdebd81b31c",
+        "sourcePath": "blender/progressive-base-v1/life-base.glb",
+        "originalBytes": 3526120,
+        "originalSha256": "89e7287703b2325a9df4640c48f1ce3b8df1deccb1dac7884d2f2d57e91539d3",
+        "encoding": "Lower-detail 128px source; lossless Meshopt + pixel-exact WebP relative to that base source"
+      }
     },
     {
       "file": "period-people.glb",
@@ -48,7 +75,16 @@
       "originalBytes": 4846404,
       "originalSha256": "aaa6840963ad9624948cff90a694b8effc1d790b3095a9d8f36a33c24ba5a388",
       "encoding": "lossless Meshopt 0.22 + pixel-exact WebP",
-      "sourcePath": "blender/cinematic-closeups-v2/cinematic-closeups.glb"
+      "sourcePath": "blender/cinematic-closeups-v2/cinematic-closeups.glb",
+      "base": {
+        "file": "base/closeup-kit.glb",
+        "bytes": 413908,
+        "sha256": "5bf0dd98525a79ca7ef04379b1a84ba00384b8c61bfd3b1fa420d2e52e1d98c8",
+        "sourcePath": "blender/progressive-base-v2/closeup-base.glb",
+        "originalBytes": 730816,
+        "originalSha256": "11ad3e3c8fd6873e17b78533901922e93453d1cb7ef9919394e36d8adf606118",
+        "encoding": "Lower-detail 128px source; lossless Meshopt + pixel-exact WebP relative to that base source"
+      }
     },
     {
       "file": "vendor-closeup.glb",
@@ -61,5 +97,169 @@
     }
   ],
   "webEncoding": "Required EXT_meshopt_compression + EXT_texture_webp; fixed local decoder; no geometry quantization, no texture resize",
-  "encodingReceiptDirectory": "blender/web-ready-v2"
+  "encodingReceiptDirectory": "blender/web-ready-v2",
+  "collisionBounds": {
+    "building_gate": [
+      [
+        -6.300000190734863,
+        -3.4000000953674316
+      ],
+      [
+        6.300000190734863,
+        3.4000000953674316
+      ]
+    ],
+    "building_shop": [
+      [
+        -3.6700000762939453,
+        -2.569999933242798
+      ],
+      [
+        3.6700000762939453,
+        3.1700000762939453
+      ]
+    ],
+    "building_tea": [
+      [
+        -5.570000171661377,
+        -3.7699999809265137
+      ],
+      [
+        5.570000171661377,
+        4.46999979019165
+      ]
+    ],
+    "building_thatch": [
+      [
+        -4.070000171661377,
+        -2.9200000762939453
+      ],
+      [
+        4.070000171661377,
+        2.9200000762939453
+      ]
+    ],
+    "building_workshop": [
+      [
+        -4.170000076293945,
+        -2.819999933242798
+      ],
+      [
+        4.170000076293945,
+        3.619999885559082
+      ]
+    ],
+    "虹桥": [
+      [
+        -3.4750001430511475,
+        -13.635000228881836
+      ],
+      [
+        3.4750001430511475,
+        13.635000228881836
+      ]
+    ],
+    "boat_cargo": [
+      [
+        -5.037985324859619,
+        -2.4290378093719482
+      ],
+      [
+        7.012807846069336,
+        1.5562840700149536
+      ]
+    ],
+    "boat_skiff": [
+      [
+        -3.5363569259643555,
+        -1.4695460796356201
+      ],
+      [
+        4.923357963562012,
+        0.9562861323356628
+      ]
+    ],
+    "cart_hand": [
+      [
+        -0.9228000044822693,
+        -1.2458423376083374
+      ],
+      [
+        0.9228000044822693,
+        1.5058423280715942
+      ]
+    ],
+    "cart_ox": [
+      [
+        -1.184999942779541,
+        -2.075000047683716
+      ],
+      [
+        1.184999942779541,
+        3.080000162124634
+      ]
+    ],
+    "stall_cloth": [
+      [
+        -1.5040000677108765,
+        -0.8240000009536743
+      ],
+      [
+        1.5040000677108765,
+        0.9394769668579102
+      ]
+    ],
+    "stall_produce": [
+      [
+        -1.5040000677108765,
+        -0.8240000009536743
+      ],
+      [
+        1.5040000677108765,
+        1.0099999904632568
+      ]
+    ],
+    "tree_bare": [
+      [
+        -0.5704708099365234,
+        -0.5974545478820801
+      ],
+      [
+        0.6086472272872925,
+        0.599776566028595
+      ]
+    ],
+    "tree_willow": [
+      [
+        -0.5704708099365234,
+        -0.5974545478820801
+      ],
+      [
+        1.7117319107055664,
+        0.7968106269836426
+      ]
+    ],
+    "detail_bridge": [
+      [
+        -3.6101622581481934,
+        11.762542724609375
+      ],
+      [
+        3.6101622581481934,
+        15.326000213623047
+      ]
+    ],
+    "detail_market": [
+      [
+        -3.450000047683716,
+        4.630000114440918
+      ],
+      [
+        3.450000047683716,
+        11.399999618530273
+      ]
+    ]
+  },
+  "baseEncodingReceiptDirectory": "blender/web-ready-base-v2",
+  "initialModelBytes": 8324536
 }

@@ -1,11 +1,12 @@
 import * as T from 'three';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
 import {MeshoptDecoder} from '../vendor/meshopt_decoder.module.js';
+import {fetchModelBytes} from './asset-stream.js';
 
 export const assetFiles={architecture:'period-architecture.glb',people:'period-people.glb',life:'period-life.glb',bridge:'hongqiao-refined.glb',closeup:'closeup-kit.glb',vendor:'vendor-closeup.glb'};
 export const requiredTemplates=['building_shop','building_tea','building_workshop','building_thatch','building_gate','person_porter','person_vendor','person_scholar','person_woman','person_boatman','person_child','boat_cargo','boat_skiff','cart_ox','cart_hand','stall_produce','stall_cloth','tree_willow','tree_bare'];
 
-export function prepareAssetKit(scenes){
+export function prepareAssetKit(scenes,collisionBounds){
  const templates=new Map(),materials=new Set(),textures=new Set();
  for(const [kind,scene] of Object.entries(scenes)){
   scene.updateMatrixWorld(true);
@@ -23,7 +24,7 @@ export function prepareAssetKit(scenes){
  // keeping its semantic joints and the same per-role instance batches.
  if(scenes.vendor)templates.set('person_vendor',scenes.vendor.getObjectByName('person_vendor'));
  for(const name of [...requiredTemplates,'bridge','detail_bridge','detail_market'])if(!templates.get(name))throw new Error(`精修模型缺失：${name}`);
- return {templates,materials,textures,setQuality(value,maxAnisotropy=4){
+ return {templates,materials,textures,scenes,collisionBounds,setQuality(value,maxAnisotropy=4){
   const level=Math.min(maxAnisotropy,value==='high'?8:value==='low'?1:4);
   for(const t of textures)if(t.anisotropy!==level){t.anisotropy=level;t.needsUpdate=true;}
  }};
@@ -32,20 +33,48 @@ export function prepareAssetKit(scenes){
 export async function loadPeriodAssets(onProgress=()=>{}){
  const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),scenes={};let done=0;
  const manifest=await fetch(new URL('../assets/models/manifest.json',import.meta.url),{cache:'no-cache',signal:AbortSignal.timeout(30000)}).then(r=>{if(!r.ok)throw new Error('模型清单读取失败');return r.json();});
- const sizes=Object.fromEntries(manifest.assets.map(a=>[a.file,a.bytes])),received={};
- const revisions=Object.fromEntries(manifest.assets.map(a=>[a.file,a.sha256.slice(0,16)]));
- const totalBytes=Object.values(assetFiles).reduce((sum,file)=>sum+sizes[file],0);
+ const entries=Object.fromEntries(Object.entries(assetFiles).map(([kind,file])=>[kind,manifest.assets.find(a=>a.file===file)])),received={};
+ for(const entry of Object.values(entries))if(!entry)throw new Error('模型清单不完整');
+ const initial=Object.fromEntries(Object.entries(entries).map(([kind,entry])=>[kind,entry.base||entry]));
+ const totalBytes=Object.values(initial).reduce((sum,entry)=>sum+entry.bytes,0);
  const progress=()=>onProgress(done,Object.keys(assetFiles).length,Object.values(received).reduce((a,b)=>a+b,0),totalBytes);
- await Promise.all(Object.entries(assetFiles).map(async([kind,file])=>{
-  let timer;const timedOut=new Promise((_,reject)=>timer=setTimeout(()=>reject(new Error('模型载入超时：'+file)),45000));
-  // A bounded QA-only missing asset exercises the actual HTTP/GLTF failure
-  // and archive fallback without removing or corrupting any public model.
-  const qa=typeof location==='undefined'?null:new URLSearchParams(location.search);
-  const suffix=qa?.has('qa')&&qa.get('fail-model')==='1'&&kind==='closeup'?'.qa-missing':'';
-  const gltf=await Promise.race([loader.loadAsync(new URL(`../assets/models/${file}${suffix}?v=${revisions[file]}`,import.meta.url).href,event=>{received[file]=Math.min(sizes[file],event.loaded);progress();}),timedOut]).finally(()=>clearTimeout(timer));
-  scenes[kind]=gltf.scene;received[file]=sizes[file];done++;progress();
- }));
- return prepareAssetKit(scenes);
+ const qa=typeof location==='undefined'?null:new URLSearchParams(location.search);
+ async function load(entry,signal,onBytes,missing=false){
+  const url=new URL(`../assets/models/${entry.file}${missing?'.qa-missing':''}?v=${entry.sha256.slice(0,16)}`,import.meta.url);
+  const buffer=await fetchModelBytes(url.href,{signal,onProgress:onBytes,expectedBytes:entry.bytes});
+  const gltf=await loader.parseAsync(buffer,'');
+  if(signal?.aborted){disposeAssetScene(gltf.scene);signal.throwIfAborted();}
+  return gltf.scene;
+ }
+ const controller=new AbortController();
+ const jobs=Object.entries(initial).map(async([kind,entry])=>{
+  const scene=await load(entry,controller.signal,bytes=>{received[kind]=Math.min(entry.bytes,bytes);progress();},qa?.has('qa')&&qa.get('fail-model')==='1'&&kind==='closeup');
+  scenes[kind]=scene;received[kind]=entry.bytes;done++;progress();
+ });
+ try{await Promise.all(jobs);}catch(error){controller.abort(error);await Promise.allSettled(jobs);for(const scene of Object.values(scenes))disposeAssetScene(scene);throw error;}
+ const kit=prepareAssetKit(scenes,manifest.collisionBounds);
+ kit.initialBytes=totalBytes;
+ kit.enhancementKinds=Object.keys(entries).filter(kind=>entries[kind].base);
+ kit.loadEnhancement=(kind,signal,onBytes)=>load(entries[kind],signal,onBytes,qa?.has('qa')&&qa.get('fail-enhancement')===kind);
+ kit.discardEnhancement=scene=>disposeAssetScene(scene);
+ return kit;
+}
+
+// Dispose retired source resources only after visual replacement has removed
+// references from the world AND the remaining template kit.
+export function disposeAssetScene(retired,liveRoots=[]){
+ const geometry=new Set(),materials=new Set(),textures=new Set();
+ const visit=(root,g,m,t)=>root?.traverse(o=>{if(!o.isMesh)return;g.add(o.geometry);for(const mat of Array.isArray(o.material)?o.material:[o.material]){m.add(mat);for(const value of Object.values(mat))if(value?.isTexture)t.add(value);}});
+ for(const root of liveRoots)visit(root,geometry,materials,textures);
+ const oldGeometry=new Set(),oldMaterials=new Set(),oldTextures=new Set();visit(retired,oldGeometry,oldMaterials,oldTextures);
+ for(const g of oldGeometry)if(!geometry.has(g))g.dispose();
+ for(const m of oldMaterials)if(!materials.has(m))m.dispose();
+ for(const t of oldTextures)if(!textures.has(t))t.dispose();
+}
+
+export function replaceObjectVisual(group,replacement,preserved=[]){
+ for(const child of [...group.children])if(!preserved.includes(child))group.remove(child);
+ for(const child of [...replacement.children])group.add(child);
 }
 
 // All Blender templates are exported at the origin. Capture full glTF transforms

@@ -1,4 +1,4 @@
-import {createAssetObject} from './period-assets.js';
+import {createAssetObject,replaceObjectVisual} from './period-assets.js';
 // Coordinates and surface heights from the reproducible Blender export report.
 export const closeupFloorPatches=[
  {x:-29,z:-16.8,w:3.4,d:2.2,height:.651,edgeHeight:.632,fade:.35},
@@ -17,5 +17,10 @@ export function createCloseupDetails(scene,kit,colliders){
  {x:-3.4,z:13,w:.3,d:2.5},{x:3.4,z:13,w:.3,d:2.5}
  ]);
  let quality='standard';
- return {market,bridge,update(camera){if(!camera)return;const far=quality==='low'?55:quality==='high'?110:85;market.visible=Math.hypot(camera.position.x+29,camera.position.z+21)<far;bridge.visible=Math.hypot(camera.position.x,camera.position.z-13)<far;},setQuality(value){quality=value;}};
+ return {market,bridge,replaceVisuals(candidate){
+  // Build both objects before changing either displayed group. The floor and
+  // fixed collision boxes stay intact; no second registration of colliders.
+  const nextMarket=createAssetObject(candidate,'detail_market'),nextBridge=createAssetObject(candidate,'detail_bridge');
+  replaceObjectVisual(market,nextMarket);replaceObjectVisual(bridge,nextBridge);
+ },update(camera){if(!camera)return;const far=quality==='low'?55:quality==='high'?110:85;market.visible=Math.hypot(camera.position.x+29,camera.position.z+21)<far;bridge.visible=Math.hypot(camera.position.x,camera.position.z-13)<far;},setQuality(value){quality=value;}};
 }
