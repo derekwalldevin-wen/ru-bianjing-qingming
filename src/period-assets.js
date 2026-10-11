@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
+import {MeshoptDecoder} from '../vendor/meshopt_decoder.module.js';
 
 export const assetFiles={architecture:'period-architecture.glb',people:'period-people.glb',life:'period-life.glb',bridge:'hongqiao-refined.glb',closeup:'closeup-kit.glb',vendor:'vendor-closeup.glb'};
 export const requiredTemplates=['building_shop','building_tea','building_workshop','building_thatch','building_gate','person_porter','person_vendor','person_scholar','person_woman','person_boatman','person_child','boat_cargo','boat_skiff','cart_ox','cart_hand','stall_produce','stall_cloth','tree_willow','tree_bare'];
@@ -29,9 +30,10 @@ export function prepareAssetKit(scenes){
 }
 
 export async function loadPeriodAssets(onProgress=()=>{}){
- const loader=new GLTFLoader(),scenes={};let done=0;
- const manifest=await fetch(new URL('../assets/models/manifest.json',import.meta.url),{signal:AbortSignal.timeout(30000)}).then(r=>{if(!r.ok)throw new Error('模型清单读取失败');return r.json();});
+ const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),scenes={};let done=0;
+ const manifest=await fetch(new URL('../assets/models/manifest.json',import.meta.url),{cache:'no-cache',signal:AbortSignal.timeout(30000)}).then(r=>{if(!r.ok)throw new Error('模型清单读取失败');return r.json();});
  const sizes=Object.fromEntries(manifest.assets.map(a=>[a.file,a.bytes])),received={};
+ const revisions=Object.fromEntries(manifest.assets.map(a=>[a.file,a.sha256.slice(0,16)]));
  const totalBytes=Object.values(assetFiles).reduce((sum,file)=>sum+sizes[file],0);
  const progress=()=>onProgress(done,Object.keys(assetFiles).length,Object.values(received).reduce((a,b)=>a+b,0),totalBytes);
  await Promise.all(Object.entries(assetFiles).map(async([kind,file])=>{
@@ -40,7 +42,7 @@ export async function loadPeriodAssets(onProgress=()=>{}){
   // and archive fallback without removing or corrupting any public model.
   const qa=typeof location==='undefined'?null:new URLSearchParams(location.search);
   const suffix=qa?.has('qa')&&qa.get('fail-model')==='1'&&kind==='closeup'?'.qa-missing':'';
-  const gltf=await Promise.race([loader.loadAsync(new URL(`../assets/models/${file}${suffix}`,import.meta.url).href,event=>{received[file]=Math.min(sizes[file],event.loaded);progress();}),timedOut]).finally(()=>clearTimeout(timer));
+  const gltf=await Promise.race([loader.loadAsync(new URL(`../assets/models/${file}${suffix}?v=${revisions[file]}`,import.meta.url).href,event=>{received[file]=Math.min(sizes[file],event.loaded);progress();}),timedOut]).finally(()=>clearTimeout(timer));
   scenes[kind]=gltf.scene;received[file]=sizes[file];done++;progress();
  }));
  return prepareAssetKit(scenes);
