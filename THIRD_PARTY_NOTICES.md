@@ -16,3 +16,5 @@ Experience research (no code copied): https://xianxie6.github.io/qingming-rivers
 Water reference: Three.js r180 Water2 (https://github.com/mrdoob/three.js/blob/r180/examples/jsm/objects/Water2.js) and the official Ocean example. vendor/Reflector.js is the unmodified r180 MIT component, covered by vendor/LICENSE. src/river.js uses that component with an original procedural river shader; Water2 refraction code and third-party water textures are not included.
 
 GLTFLoader.js is the official r180 loader, with its BufferGeometryUtils import changed to the local vendored path. Blender historical-refinement geometry and material textures are original project assets; source .blend files and reference notes are retained in the project.
+
+UI art direction (2026-10-11): Qingming-inspired silk mounts and blue-green landscape palette. The UI concept and assets/ui/qinglv-mountains.png were generated with the built-in image generation tool for this project. The cover combines the owner-provided original painting crop with that generated ornament; UI labels and controls are live HTML. This imagery is a contemporary artistic interpretation and is not an original Song painting.
