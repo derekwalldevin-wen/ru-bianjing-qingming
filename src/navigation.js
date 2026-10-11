@@ -34,7 +34,7 @@ export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>
    const spawn=world.walkSpawn?.(p.walk[0],p.walk[2])??(world.walkSpawn?null:[p.walk[0],p.walk[2]]);
    if(!spawn||!(world.canWalk||world.valid)(...spawn)){onError('此处暂时拥挤，请稍后再试或选择俯瞰。');return null;}
    const y=world.floor(...spawn)+1.65;
-   return {index:i,mode:'walk',position:[spawn[0],y,spawn[1]],look:[spawn[0]-Math.sin(p.heading)*10,y,spawn[1]-Math.cos(p.heading)*10],yaw:p.heading,pitch:.03};
+   return {index:i,mode:'walk',position:[spawn[0],y,spawn[1]],look:[spawn[0]-Math.sin(p.heading)*10,y,spawn[1]-Math.cos(p.heading)*10],yaw:p.heading,pitch:i===3?-.16:.03};
   }
   return {index:i,mode:'overview',position:p.view,look:p.target};
  }
