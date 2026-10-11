@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
 
-export const assetFiles={architecture:'period-architecture.glb',people:'period-people.glb',life:'period-life.glb',bridge:'hongqiao-refined.glb'};
+export const assetFiles={architecture:'period-architecture.glb',people:'period-people.glb',life:'period-life.glb',bridge:'hongqiao-refined.glb',closeup:'closeup-kit.glb',vendor:'vendor-closeup.glb'};
 export const requiredTemplates=['building_shop','building_tea','building_workshop','building_thatch','building_gate','person_porter','person_vendor','person_scholar','person_woman','person_boatman','person_child','boat_cargo','boat_skiff','cart_ox','cart_hand','stall_produce','stall_cloth','tree_willow','tree_bare'];
 
 export function prepareAssetKit(scenes){
@@ -10,7 +10,7 @@ export function prepareAssetKit(scenes){
   scene.updateMatrixWorld(true);
   if(kind==='bridge')templates.set('bridge',scene);
   scene.traverse(o=>{
-   if(requiredTemplates.includes(o.name))templates.set(o.name,o);
+   if(requiredTemplates.includes(o.name)||['detail_bridge','detail_market'].includes(o.name))templates.set(o.name,o);
    if(o.isMesh){
     o.castShadow=o.receiveShadow=true;
     const list=Array.isArray(o.material)?o.material:[o.material];
@@ -18,7 +18,10 @@ export function prepareAssetKit(scenes){
    }
   });
  }
- for(const name of [...requiredTemplates,'bridge'])if(!templates.has(name))throw new Error(`精修模型缺失：${name}`);
+ // An independent refined export deliberately replaces the existing role,
+ // keeping its semantic joints and the same per-role instance batches.
+ if(scenes.vendor)templates.set('person_vendor',scenes.vendor.getObjectByName('person_vendor'));
+ for(const name of [...requiredTemplates,'bridge','detail_bridge','detail_market'])if(!templates.get(name))throw new Error(`精修模型缺失：${name}`);
  return {templates,materials,textures,setQuality(value,maxAnisotropy=4){
   const level=Math.min(maxAnisotropy,value==='high'?8:value==='low'?1:4);
   for(const t of textures)if(t.anisotropy!==level){t.anisotropy=level;t.needsUpdate=true;}
@@ -27,12 +30,13 @@ export function prepareAssetKit(scenes){
 
 export async function loadPeriodAssets(onProgress=()=>{}){
  const loader=new GLTFLoader(),scenes={};let done=0;
- const manifest=await fetch(new URL('../assets/models/manifest.json',import.meta.url)).then(r=>{if(!r.ok)throw new Error('模型清单读取失败');return r.json();});
+ const manifest=await fetch(new URL('../assets/models/manifest.json',import.meta.url),{signal:AbortSignal.timeout(30000)}).then(r=>{if(!r.ok)throw new Error('模型清单读取失败');return r.json();});
  const sizes=Object.fromEntries(manifest.assets.map(a=>[a.file,a.bytes])),received={};
  const totalBytes=Object.values(assetFiles).reduce((sum,file)=>sum+sizes[file],0);
- const progress=()=>onProgress(done,4,Object.values(received).reduce((a,b)=>a+b,0),totalBytes);
+ const progress=()=>onProgress(done,Object.keys(assetFiles).length,Object.values(received).reduce((a,b)=>a+b,0),totalBytes);
  await Promise.all(Object.entries(assetFiles).map(async([kind,file])=>{
-  const gltf=await loader.loadAsync(new URL(`../assets/models/${file}`,import.meta.url).href,event=>{received[file]=Math.min(sizes[file],event.loaded);progress();});
+  let timer;const timedOut=new Promise((_,reject)=>timer=setTimeout(()=>reject(new Error('模型载入超时：'+file)),45000));
+  const gltf=await Promise.race([loader.loadAsync(new URL(`../assets/models/${file}`,import.meta.url).href,event=>{received[file]=Math.min(sizes[file],event.loaded);progress();}),timedOut]).finally(()=>clearTimeout(timer));
   scenes[kind]=gltf.scene;received[file]=sizes[file];done++;progress();
  }));
  return prepareAssetKit(scenes);

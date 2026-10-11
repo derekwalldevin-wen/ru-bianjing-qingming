@@ -1,0 +1,83 @@
+{
+  "source": "blender\\period-people\\kit.blend",
+  "source_sha256": "089694aad4a3a51c8bd1c275be80cf9f2534d2d206839327f3ccfaa718268170",
+  "blender": "5.2.1 LTS",
+  "glb_sha256": "ab864d976eb585131126f256fc4a8a3a5b231e5129e94e7fc4a74000040c19d8",
+  "bytes": 543636,
+  "triangles": 7500,
+  "meshes": 9,
+  "primitives": 21,
+  "materials": 7,
+  "images": 4,
+  "height_m": 1.7598400325514376,
+  "blender_bounds": [
+    [
+      -0.3490174412727356,
+      -0.2068459540605545,
+      0.003000000026077032
+    ],
+    [
+      0.3490174412727356,
+      0.1550000011920929,
+      1.7628400325775146
+    ]
+  ],
+  "semantic_parts": [
+    "body",
+    "head",
+    "arm_left",
+    "arm_right",
+    "leg_left",
+    "leg_right",
+    "foot_left",
+    "foot_right",
+    "props"
+  ],
+  "sole_contact": {
+    "foot_left": {
+      "lowest_z_m": 0.003000000026077032,
+      "coplanar_contact_vertices": 24,
+      "contact_width_m": 0.11400000005960464,
+      "contact_depth_m": 0.21199999377131462
+    },
+    "foot_right": {
+      "lowest_z_m": 0.003000000026077032,
+      "coplanar_contact_vertices": 24,
+      "contact_width_m": 0.11400000005960464,
+      "contact_depth_m": 0.21199999377131462
+    }
+  },
+  "static_tunic_envelope": {
+    "checked_vertices": 32,
+    "max_elliptical_fraction": 0.8232243103104773,
+    "radius_x_m": 0.205,
+    "radius_y_m": 0.153,
+    "z_range_m": [
+      0.76,
+      0.82
+    ]
+  },
+  "static_apron_leg_clearance_m": 0.10685701668262482,
+  "maximum_horizontal_radius_m": 0.3508811420026042,
+  "original_maximum_horizontal_radius_m": 0.3508811420026042,
+  "collision_guidance": "Use actual full geometry footprint including enlarged head and hands; existing swept crowd collision and ankle contacts must be rerun after integration. Props pouch is inside sleeve radius. No held objects. Static geometry verified here; not a full runtime animation or all-pose intersection certificate.",
+  "changes": [
+    "Existing vendor ochre tunic, apron, woven cloth material and headcloth retained",
+    "Head enlarged 1.42 in width / 1.32 above neck for friendly readable proportions",
+    "Solid eyes brows nose small smile and cheeks",
+    "Rounded palm four separate fingers and thumb",
+    "Flat coplanar woven soles and rounded separated cloth shoes",
+    "Solid apron edge and waist pouch"
+  ],
+  "checks": [
+    "GLB header and exact length",
+    "GLB normals UV and embedded textures",
+    "all nine semantic joints",
+    "height and triangle/byte budgets",
+    "actual flat sole contact vertices",
+    "static tunic leg envelope",
+    "lower apron-to-leg clearance"
+  ],
+  "coordinate_system": "Blender +Z up, -Y facing; glTF +Y up, +Z facing; root at origin",
+  "provenance": "Original project mesh refinement using supplied scene references and AI art-direction board; artistic spatial interpretation, not exact historical reconstruction."
+}

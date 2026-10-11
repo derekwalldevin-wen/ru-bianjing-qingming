@@ -1,0 +1,141 @@
+{
+  "blender": "5.2.1 LTS",
+  "templates": {
+    "detail_market": {
+      "triangles": 11988,
+      "material_meshes": 6,
+      "editable_parts": 161,
+      "bbox_web": [
+        [
+          -3.515000104904175,
+          -0.013000000268220901,
+          4.340360164642334
+        ],
+        [
+          3.515000104904175,
+          3.184999942779541,
+          11.399999618530273
+        ]
+      ],
+      "root_placement_web": [
+        -29,
+        0.62,
+        -26
+      ]
+    },
+    "detail_bridge": {
+      "triangles": 3632,
+      "material_meshes": 1,
+      "editable_parts": 56,
+      "bbox_web": [
+        [
+          -3.609637975692749,
+          0.5978745222091675,
+          10.412540435791016
+        ],
+        [
+          3.609637975692749,
+          3.7144999504089355,
+          15.326000213623047
+        ]
+      ],
+      "root_placement_web": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "glb_bytes": 3321356,
+  "sha256": "86d80ad732f4bb04fc3007b1cb69d7d6f8b5f9a5e0a3f745e42e00388b05aef4",
+  "materials": 6,
+  "pbr_images": 18,
+  "original_textures": true,
+  "references": [
+    "dist/assets/market-original.webp",
+    "dist/assets/bridge-original.webp",
+    "design/next-stage-2026-10-11/04-nearfield-model-guide.png"
+  ],
+  "integration": {
+    "replace_old_geometry": false,
+    "market_position": [
+      -29,
+      0.62,
+      -26
+    ],
+    "bridge_position": [
+      0,
+      0,
+      0
+    ],
+    "floor_patches": [
+      {
+        "x": -29,
+        "z": -16.8,
+        "halfWidth": 3.4,
+        "halfDepth": 2.2,
+        "height": 0.651,
+        "edgeHeight": 0.632,
+        "edgeFade": 0.35
+      },
+      {
+        "x": 0,
+        "z": 14.3925,
+        "halfWidth": 3.125,
+        "halfDepth": 0.934,
+        "height": 0.66
+      }
+    ],
+    "colliders_world": [
+      {
+        "x": -32.25,
+        "z": -20.28,
+        "w": 0.24,
+        "d": 0.24
+      },
+      {
+        "x": -25.75,
+        "z": -20.28,
+        "w": 0.24,
+        "d": 0.24
+      },
+      {
+        "x": -30.85,
+        "z": -20.35,
+        "w": 1.05,
+        "d": 0.4
+      },
+      {
+        "x": -26.55,
+        "z": -20.14,
+        "w": 0.35,
+        "d": 0.35
+      },
+      {
+        "x": -26.98,
+        "z": -19.53,
+        "w": 0.27,
+        "d": 0.27
+      },
+      {
+        "x": -26.15,
+        "z": -19.58,
+        "w": 0.33,
+        "d": 0.33
+      }
+    ],
+    "notes": "Add floor patches to avoid feet below shallow detail road/planks; porch canopy above head clearance, no canopy collider. Keep bridge navigation boundaries and old building collider. Optional detail LOD hide beyond 48m except shadow."
+  },
+  "rebuild": "Blender --background --factory-startup --python scripts/build-closeup-kit.py",
+  "scope": "Supplemental geometry, no replacement of original architecture or bridge; no river pier.",
+  "validation": {
+    "glb_header_length": true,
+    "finite_float_values": 228960,
+    "actual_runtime_triangles": 15620,
+    "primitives": 7,
+    "uv_normal_on_all_primitives": true,
+    "embedded_png_images": 18,
+    "runtime_materials": 6,
+    "blender_render_review": "market and bridge previews generated; confirm rendered files separately"
+  }
+}

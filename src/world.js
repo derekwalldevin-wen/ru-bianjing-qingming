@@ -7,6 +7,7 @@ import {createDetailBuilder} from './details.js';
 import {createAssetInstances,createAssetObject} from './period-assets.js';
 import {createPeriodCrowd} from './period-crowd.js';
 import {circleHitsBox} from './crowd-motion.js';
+import {createCloseupDetails,closeupFloor} from './closeup-details.js';
 
 export const bridgeHeight=z=>.68+4.7*Math.max(0,1-(z/13.5)**2);
 export function createWorld(scene,kit){
@@ -122,13 +123,14 @@ export function createWorld(scene,kit){
   else{const bank=z*Math.sign(p.z);if(Math.abs(x)+r>103||bank<11.9+r||bank>21.4-r)return false;}
   return !colliders.some(c=>circleHitsBox(x,z,r+.035,c));
  }
+ const closeups=createCloseupDetails(scene,kit,colliders);
  const crowd=createPeriodCrowd(scene,kit,persons,bridgeHeight,clearPerson,floor),assetBatches=createAssetInstances(scene,kit,placements);
  for(const [material,geometries] of batches){const mesh=new T.Mesh(mergeGeometries(geometries),material);mesh.name='街巷/岸坡与细部';mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);geometries.forEach(g=>g.dispose());}batches.clear();
  const lighting=createLighting(scene,m,river.material,lanternLocations);
- function update(time,dt,reduced,night,camera,visitor){lighting.update(time,dt,night,reduced,camera);for(const b of boats){b.g.position.y=.17+(reduced?0:Math.sin(time*.6+b.phase)*.025);b.g.position.x=b.moving&&!reduced?((b.x+time*.36+108)%216)-108:b.x;}river.update(dt,reduced,boats,lighting);crowd.update(time,reduced,camera,visitor);for(const f of flags)f.mesh.rotation.y=reduced?0:Math.sin(time*.7+f.x)*.025;}
+ function update(time,dt,reduced,night,camera,visitor){closeups.update(camera);lighting.update(time,dt,night,reduced,camera);for(const b of boats){b.g.position.y=.17+(reduced?0:Math.sin(time*.6+b.phase)*.025);b.g.position.x=b.moving&&!reduced?((b.x+time*.36+108)%216)-108:b.x;}river.update(dt,reduced,boats,lighting);crowd.update(time,reduced,camera,visitor);for(const f of flags)f.mesh.rotation.y=reduced?0:Math.sin(time*.7+f.x)*.025;}
  function valid(x,z){if(Math.abs(x)>104||Math.abs(z)>70)return false;if(Math.abs(z)<11.8&&Math.abs(x)>2.65)return false;return !colliders.some(c=>Math.abs(x-c.x)<c.w+.28&&Math.abs(z-c.z)<c.d+.28);}
- function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:.62;}
+ function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:closeupFloor(x,z,.62);}
  function canWalk(x,z){return valid(x,z)&&crowd.motion.validVisitor(x,z);}
  function walkSpawn(x,z){for(let ring=0;ring<16;ring++){const n=ring?ring*8:1;for(let i=0;i<n;i++){const xx=x+Math.cos(i/n*Math.PI*2)*ring*.2,zz=z+Math.sin(i/n*Math.PI*2)*ring*.2;if(canWalk(xx,zz))return [xx,zz];}}return null;}
- return {update,valid,canWalk,walkSpawn,clearPerson,floor,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,setLighting:lighting.configure,setQuality(value,maxAnisotropy){crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
+ return {update,valid,canWalk,walkSpawn,clearPerson,floor,closeups,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,setLighting:lighting.configure,setQuality(value,maxAnisotropy){closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
 }

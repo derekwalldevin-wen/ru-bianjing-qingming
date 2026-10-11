@@ -24,6 +24,16 @@
       "file": "period-people.glb",
       "bytes": 1533952,
       "sha256": "bfe6851ab37291f1cfd994a4e245cbd67f0bcede3116b94b341bd78e9dda1091"
+    },
+    {
+      "file": "closeup-kit.glb",
+      "bytes": 3321356,
+      "sha256": "86d80ad732f4bb04fc3007b1cb69d7d6f8b5f9a5e0a3f745e42e00388b05aef4"
+    },
+    {
+      "file": "vendor-closeup.glb",
+      "bytes": 543636,
+      "sha256": "ab864d976eb585131126f256fc4a8a3a5b231e5129e94e7fc4a74000040c19d8"
     }
   ]
 }
