@@ -31,18 +31,21 @@ export function prepareAssetKit(scenes,collisionBounds){
 }
 
 export async function loadPeriodAssets(onProgress=()=>{}){
- const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),scenes={};let done=0;
+ const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),scenes={},loadTimings=[];let done=0;
  const manifest=await fetch(new URL('../assets/models/manifest.json',import.meta.url),{cache:'no-cache',signal:AbortSignal.timeout(30000)}).then(r=>{if(!r.ok)throw new Error('模型清单读取失败');return r.json();});
  const entries=Object.fromEntries(Object.entries(assetFiles).map(([kind,file])=>[kind,manifest.assets.find(a=>a.file===file)])),received={};
+ const qa=typeof location==='undefined'?null:new URLSearchParams(location.search),fullReference=qa?.has('qa')&&qa.get('full-models')==='1';
  for(const entry of Object.values(entries))if(!entry)throw new Error('模型清单不完整');
- const initial=Object.fromEntries(Object.entries(entries).map(([kind,entry])=>[kind,entry.base||entry]));
+ const initial=Object.fromEntries(Object.entries(entries).map(([kind,entry])=>[kind,fullReference?entry:entry.base||entry]));
  const totalBytes=Object.values(initial).reduce((sum,entry)=>sum+entry.bytes,0);
  const progress=()=>onProgress(done,Object.keys(assetFiles).length,Object.values(received).reduce((a,b)=>a+b,0),totalBytes);
- const qa=typeof location==='undefined'?null:new URLSearchParams(location.search);
  async function load(entry,signal,onBytes,missing=false){
+  const started=performance.now();
   const url=new URL(`../assets/models/${entry.file}${missing?'.qa-missing':''}?v=${entry.sha256.slice(0,16)}`,import.meta.url);
   const buffer=await fetchModelBytes(url.href,{signal,onProgress:onBytes,expectedBytes:entry.bytes});
+  const downloaded=performance.now();
   const gltf=await loader.parseAsync(buffer,'');
+  loadTimings.push({file:entry.file,bytes:buffer.byteLength,fetchMilliseconds:downloaded-started,parseMilliseconds:performance.now()-downloaded});
   if(signal?.aborted){disposeAssetScene(gltf.scene);signal.throwIfAborted();}
   return gltf.scene;
  }
@@ -54,7 +57,8 @@ export async function loadPeriodAssets(onProgress=()=>{}){
  try{await Promise.all(jobs);}catch(error){controller.abort(error);await Promise.allSettled(jobs);for(const scene of Object.values(scenes))disposeAssetScene(scene);throw error;}
  const kit=prepareAssetKit(scenes,manifest.collisionBounds);
  kit.initialBytes=totalBytes;
- kit.enhancementKinds=Object.keys(entries).filter(kind=>entries[kind].base);
+ kit.loadTimings=loadTimings;kit.fullReference=fullReference;
+ kit.enhancementKinds=fullReference?[]:Object.keys(entries).filter(kind=>entries[kind].base);
  kit.loadEnhancement=(kind,signal,onBytes)=>load(entries[kind],signal,onBytes,qa?.has('qa')&&qa.get('fail-enhancement')===kind);
  kit.discardEnhancement=scene=>disposeAssetScene(scene);
  return kit;
