@@ -1,0 +1,29 @@
+{
+  "format": "glTF 2.0",
+  "coordinates": "Y up, metres",
+  "provenance": "Original project-created Blender geometry and procedural textures; visual reference from user-supplied Qingming painting crops. No paid model generation.",
+  "license": "Project-original assets; no standalone public asset license assigned.",
+  "interpretation": "Unseen elevations, dimensions, colors and arrangement include artistic interpretation.",
+  "assets": [
+    {
+      "file": "hongqiao-refined.glb",
+      "bytes": 5505828,
+      "sha256": "fae7a3fe17934391d16b8569c7d16ad2ded4b1ae2352ce45fe6a63fbf44cc3bf"
+    },
+    {
+      "file": "period-architecture.glb",
+      "bytes": 9068192,
+      "sha256": "49af63686942469257b4dce66125cdff5187d65737d7d9a52becc0d3e2d8e605"
+    },
+    {
+      "file": "period-life.glb",
+      "bytes": 3746944,
+      "sha256": "495debc7e92c62face3fe790873bb668d64997931da61e82926eca1c5408f5b7"
+    },
+    {
+      "file": "period-people.glb",
+      "bytes": 1533952,
+      "sha256": "bfe6851ab37291f1cfd994a4e245cbd67f0bcede3116b94b341bd78e9dda1091"
+    }
+  ]
+}
