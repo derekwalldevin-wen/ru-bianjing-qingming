@@ -36,7 +36,11 @@ export async function loadPeriodAssets(onProgress=()=>{}){
  const progress=()=>onProgress(done,Object.keys(assetFiles).length,Object.values(received).reduce((a,b)=>a+b,0),totalBytes);
  await Promise.all(Object.entries(assetFiles).map(async([kind,file])=>{
   let timer;const timedOut=new Promise((_,reject)=>timer=setTimeout(()=>reject(new Error('模型载入超时：'+file)),45000));
-  const gltf=await Promise.race([loader.loadAsync(new URL(`../assets/models/${file}`,import.meta.url).href,event=>{received[file]=Math.min(sizes[file],event.loaded);progress();}),timedOut]).finally(()=>clearTimeout(timer));
+  // A bounded QA-only missing asset exercises the actual HTTP/GLTF failure
+  // and archive fallback without removing or corrupting any public model.
+  const qa=typeof location==='undefined'?null:new URLSearchParams(location.search);
+  const suffix=qa?.has('qa')&&qa.get('fail-model')==='1'&&kind==='closeup'?'.qa-missing':'';
+  const gltf=await Promise.race([loader.loadAsync(new URL(`../assets/models/${file}${suffix}`,import.meta.url).href,event=>{received[file]=Math.min(sizes[file],event.loaded);progress();}),timedOut]).finally(()=>clearTimeout(timer));
   scenes[kind]=gltf.scene;received[file]=sizes[file];done++;progress();
  }));
  return prepareAssetKit(scenes);
