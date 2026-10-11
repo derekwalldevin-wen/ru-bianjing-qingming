@@ -70,3 +70,4 @@ body[data-catalog=closed] .scene-note{left:auto;right:28px;bottom:74px}
 #asset-detail-status.hidden{display:none}#asset-detail-status button{min-width:44px;min-height:44px;padding:7px}
 body[data-mode=walk] #asset-detail-status{left:180px;bottom:28px}
 @media(max-width:650px){#asset-detail-status,body[data-mode=walk] #asset-detail-status{left:13px;top:224px;bottom:auto;max-width:180px}}
+@media(max-width:650px){body[data-observation=boat] .object-card,body[data-observation=boat][data-catalog=closed] .object-card{left:13px;right:13px;bottom:118px;padding:12px 15px;max-height:24dvh}body[data-observation=boat] .object-card .eyebrow{margin:0;font-size:10px;max-width:none;line-height:1.5}body[data-observation=boat] .object-card h3{font-size:20px;margin:5px 0}body[data-observation=boat] .object-card>p:not(.eyebrow){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:5px 0}body[data-observation=boat] .object-card>div{gap:6px}}

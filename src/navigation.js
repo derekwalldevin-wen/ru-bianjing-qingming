@@ -53,7 +53,7 @@ export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>
  function overview(){detailReturn=null;return request(destination(transition.pending?.index??index,'overview'));}
  function walk(i=transition.pending?.index??index){detailReturn=null;return request(destination(i,'walk'));}
  function startTour(i=0){if(!tour[i])return false;detailReturn=null;const t=tour[i];return request({index:t.place,mode:'tour',position:t.from,look:t.look,tourIndex:i,tourTime:0,paused:false},false,false);}
- function inspect(observation){if(!observations.includes(observation))return false;if(!detailReturn)detailReturn=snapshot();return request({index:observation.place,mode:'overview',position:observation.view,look:observation.look},false,false);}
+ function inspect(observation){if(!observations.includes(observation))return false;if(!detailReturn)detailReturn=snapshot();const compact=canvas.clientWidth<=650;return request({index:observation.place,mode:'overview',position:compact&&observation.mobileView?observation.mobileView:observation.view,look:compact&&observation.mobileLook?observation.mobileLook:observation.look},false,false);}
  function closeInspection(){if(!detailReturn)return;const returnTo=detailReturn;detailReturn=null;request(returnTo,false,false);}
  function cancel(){const was=transition.cancel();clear();syncControls();return was;}
  function skip(){clear();transition.finish();syncControls();}

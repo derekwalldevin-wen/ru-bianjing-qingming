@@ -132,7 +132,13 @@ export function createWorld(scene,kit){
  const crowd=createPeriodCrowd(scene,kit,persons,bridgeHeight,clearPerson,floor),assetBatches=createAssetInstances(scene,kit,placements);
  for(const [material,geometries] of batches){const mesh=new T.Mesh(mergeGeometries(geometries),material);mesh.name='街巷/岸坡与细部';mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);geometries.forEach(g=>g.dispose());}batches.clear();
  const lighting=createLighting(scene,m,river.material,lanternLocations);
- const enhancedKinds=new Set();let assetQuality='standard',anisotropy=4;
+ const enhancedKinds=new Set();let assetQuality='standard',anisotropy=4,boatDetailVisible=false;
+ function setBoatDetailVisible(refined){
+  if(!enhancedKinds.has('boatdetail'))return false;
+  const visual=createAssetObject(kit,refined?'detail_cargo_boat':'boat_cargo');
+  replaceObjectVisual(boats[0].g,visual,[boats[0].worker]);
+  boats[0].worker.position.set(...(refined?[3.98,.665,.17]:[3.6,.75,.15]));boatDetailVisible=refined;return true;
+ }
  function upgradeAsset(kind,nextScene){
   if(!['architecture','bridge','life','closeup','boatdetail'].includes(kind))throw new Error('Unsupported visual enhancement '+kind);
   if(enhancedKinds.has(kind)){disposeAssetScene(nextScene,[scene,...Object.values(kit.scenes)]);return;}
@@ -142,7 +148,7 @@ export function createWorld(scene,kit){
    const selected=new Map([...placements].filter(([name])=>name.startsWith('building_')===(kind==='architecture')));
    const staging=new T.Group(),nextBatches=createAssetInstances(staging,candidate,selected);
    const oldBatches=assetBatches.filter(mesh=>[...selected.keys()].some(name=>mesh.name.startsWith(`精修/${name}/`)));
-   const nextBoats=kind==='life'?boats.map((b,i)=>i===0&&enhancedKinds.has('boatdetail')?null:createAssetObject(candidate,b.name)):[];
+   const nextBoats=kind==='life'?boats.map((b,i)=>i===0&&boatDetailVisible?null:createAssetObject(candidate,b.name)):[];
    // All construction and validation succeeded. Commit synchronously between
    // frames; crowd, collision proxies, clock and group transforms never reset.
    for(const mesh of oldBatches){scene.remove(mesh);mesh.dispose();assetBatches.splice(assetBatches.indexOf(mesh),1);}
@@ -154,7 +160,7 @@ export function createWorld(scene,kit){
    replaceObjectVisual(boats[0].g,visual,[boats[0].worker]);
    // The refined working deck is a visible surface, rather than an invisible
    // height offset; its top is 0.660m in the boat's local coordinate system.
-   boats[0].worker.position.set(3.98,.665,.17);
+   boats[0].worker.position.set(3.98,.665,.17);boatDetailVisible=true;
   }
   else closeups.replaceVisuals(candidate);
   Object.assign(kit,candidate);enhancedKinds.add(kind);
@@ -165,5 +171,5 @@ export function createWorld(scene,kit){
  function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:closeupFloor(x,z,.62);}
  function canWalk(x,z){return valid(x,z)&&crowd.motion.validVisitor(x,z);}
  function walkSpawn(x,z){for(let ring=0;ring<16;ring++){const n=ring?ring*8:1;for(let i=0;i<n;i++){const xx=x+Math.cos(i/n*Math.PI*2)*ring*.2,zz=z+Math.sin(i/n*Math.PI*2)*ring*.2;if(canWalk(xx,zz))return [xx,zz];}}return null;}
- return {update,valid,canWalk,walkSpawn,clearPerson,floor,closeups,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
+ return {update,valid,canWalk,walkSpawn,clearPerson,floor,closeups,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
 }
