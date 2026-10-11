@@ -7,19 +7,21 @@
   "assets": [
     {
       "file": "hongqiao-refined.glb",
-      "bytes": 3043224,
-      "sha256": "db8d0db9e8d3be4f9d88ee0ed99fc760e8c8162b2957e1bfca3c3f0d111f395b",
-      "originalBytes": 5505828,
-      "originalSha256": "fae7a3fe17934391d16b8569c7d16ad2ded4b1ae2352ce45fe6a63fbf44cc3bf",
-      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP"
+      "bytes": 3408924,
+      "sha256": "b1a8382453f734b8062dc30cb51c015dcd47238c497dd41ddb18dd3ea5a2ab46",
+      "originalBytes": 5916932,
+      "originalSha256": "183bdff824d931ffa19ddb05d72949a532bd6c3a99dd6bff9e29127c06ec4b4f",
+      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP",
+      "sourcePath": "blender/cinematic-timbers-v1/bridge-timbers.glb"
     },
     {
       "file": "period-architecture.glb",
-      "bytes": 5737380,
-      "sha256": "a963a83c5077b54388e634076152b37e8be31f880c2c3507fda9037368573dfc",
-      "originalBytes": 9068192,
-      "originalSha256": "49af63686942469257b4dce66125cdff5187d65737d7d9a52becc0d3e2d8e605",
-      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP"
+      "bytes": 5635444,
+      "sha256": "dc4740058cc3b48cbb5e4978af6685333d5d00195d1de73d15f33584e74336a3",
+      "originalBytes": 9014376,
+      "originalSha256": "5b057d68529ba5652a82180e27bf3db50008cbecd61737de2dc16e7f398cc81e",
+      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP",
+      "sourcePath": "blender/cinematic-timbers-v1/architecture-timbers.glb"
     },
     {
       "file": "period-life.glb",
@@ -27,7 +29,8 @@
       "sha256": "cfce227d082e77099874fffa15606dcb0ed1b854734491fe16e08ea8d7085880",
       "originalBytes": 3746944,
       "originalSha256": "495debc7e92c62face3fe790873bb668d64997931da61e82926eca1c5408f5b7",
-      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP"
+      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP",
+      "sourcePath": "blender/period-life/kit.glb"
     },
     {
       "file": "period-people.glb",
@@ -35,15 +38,17 @@
       "sha256": "1bd99d8fd84bf88e4985615e12d710e0740bdf56a6c7c8d4b749070d61e8164a",
       "originalBytes": 1533952,
       "originalSha256": "bfe6851ab37291f1cfd994a4e245cbd67f0bcede3116b94b341bd78e9dda1091",
-      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP"
+      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP",
+      "sourcePath": "blender/period-people/kit.glb"
     },
     {
       "file": "closeup-kit.glb",
-      "bytes": 1859728,
-      "sha256": "8d33ddfea6b653f234bc76451d4d267529f9dfb1ce75f588ae9981b9fa807b8a",
-      "originalBytes": 3321356,
-      "originalSha256": "86d80ad732f4bb04fc3007b1cb69d7d6f8b5f9a5e0a3f745e42e00388b05aef4",
-      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP"
+      "bytes": 3028800,
+      "sha256": "da17c3ad973d67e33699703352325d247c683a5bd78ed7deaba6ed6782d70862",
+      "originalBytes": 4846404,
+      "originalSha256": "aaa6840963ad9624948cff90a694b8effc1d790b3095a9d8f36a33c24ba5a388",
+      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP",
+      "sourcePath": "blender/cinematic-closeups-v2/cinematic-closeups.glb"
     },
     {
       "file": "vendor-closeup.glb",
@@ -51,8 +56,10 @@
       "sha256": "82cc816654458cf712fc5724f8f31b5eb34c69b645988f932711f0e7bad8c4fb",
       "originalBytes": 543636,
       "originalSha256": "ab864d976eb585131126f256fc4a8a3a5b231e5129e94e7fc4a74000040c19d8",
-      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP"
+      "encoding": "lossless Meshopt 0.22 + pixel-exact WebP",
+      "sourcePath": "blender/vendor-closeup/vendor-closeup.glb"
     }
   ],
-  "webEncoding": "Required EXT_meshopt_compression + EXT_texture_webp; fixed local decoder; no geometry quantization, no texture resize"
+  "webEncoding": "Required EXT_meshopt_compression + EXT_texture_webp; fixed local decoder; no geometry quantization, no texture resize",
+  "encodingReceiptDirectory": "blender/web-ready-v2"
 }
