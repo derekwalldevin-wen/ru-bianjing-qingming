@@ -70,4 +70,12 @@ body[data-catalog=closed] .scene-note{left:auto;right:28px;bottom:74px}
 #asset-detail-status.hidden{display:none}#asset-detail-status button{min-width:44px;min-height:44px;padding:7px}
 body[data-mode=walk] #asset-detail-status{left:180px;bottom:28px}
 @media(max-width:650px){#asset-detail-status,body[data-mode=walk] #asset-detail-status{left:13px;top:224px;bottom:auto;max-width:180px}}
-@media(max-width:650px){body[data-observation=boat] .object-card,body[data-observation=boat][data-catalog=closed] .object-card{left:13px;right:13px;bottom:118px;padding:12px 15px;max-height:24dvh}body[data-observation=boat] .object-card .eyebrow{margin:0;font-size:10px;max-width:none;line-height:1.5}body[data-observation=boat] .object-card h3{font-size:20px;margin:5px 0}body[data-observation=boat] .object-card>p:not(.eyebrow){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:5px 0}body[data-observation=boat] .object-card>div{gap:6px}}
+@media(max-width:650px){body:is([data-observation=boat],[data-observation=person]) .object-card,body:is([data-observation=boat],[data-observation=person])[data-catalog=closed] .object-card{left:13px;right:13px;bottom:118px;padding:12px 15px;max-height:24dvh}body:is([data-observation=boat],[data-observation=person]) .object-card .eyebrow{margin:0;font-size:10px;max-width:none;line-height:1.5}body:is([data-observation=boat],[data-observation=person]) .object-card h3{font-size:20px;margin:5px 0}body:is([data-observation=boat],[data-observation=person]) .object-card>p:not(.eyebrow){display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:5px 0}body:is([data-observation=boat],[data-observation=person]) .object-card>div{gap:6px}}
+/* One compact line leaves room for all three 44px actions at 360x740.
+   The interpretation notice remains in the compact description itself. */
+@media(max-width:650px){body:is([data-observation=boat],[data-observation=person]) .object-card .eyebrow{display:none}body:is([data-observation=boat],[data-observation=person]) .object-card h3{line-height:1.3;margin:0 0 4px}body:is([data-observation=boat],[data-observation=person]) #object-text{display:block;font-size:12px;line-height:1.6;margin:4px 0;max-height:19.2px;overflow:hidden}body:is([data-observation=boat],[data-observation=person]) #object-return{min-height:44px;margin:3px 0 0;padding:0}}
+
+.merchant-open{top:505px}
+.scene-ui:has(#object-card:not(.hidden)) .nearby-open{visibility:hidden}
+@media(min-width:651px) and (max-height:700px){.merchant-open{top:auto;bottom:196px;right:230px}}
+@media(max-width:650px){.merchant-open{top:384px}}

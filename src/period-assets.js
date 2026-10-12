@@ -62,6 +62,7 @@ export async function loadPeriodAssets(onProgress=()=>{}){
  try{await Promise.all(jobs);}catch(error){controller.abort(error);await Promise.allSettled(jobs);for(const scene of Object.values(scenes))disposeAssetScene(scene);throw error;}
  const kit=prepareAssetKit(scenes,manifest.collisionBounds);
  kit.initialBytes=totalBytes;
+ kit.vendorSourceHash=entries.vendor.sha256;
  kit.loadTimings=loadTimings;kit.fullReference=fullReference;
  kit.enhancementKinds=[...(fullReference?[]:Object.keys(entries).filter(kind=>entries[kind].base)),...Object.keys(optional)];
  kit.loadEnhancement=(kind,signal,onBytes)=>load(entries[kind]||optional[kind],signal,onBytes,qa?.has('qa')&&qa.get('fail-enhancement')===kind);
