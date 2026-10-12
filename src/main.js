@@ -6,12 +6,14 @@ import {createEnhancementQueue,requiredEnhancementsForPlace} from './asset-strea
 const initialJourney=readJourney(location.hash,places);
 const $=id=>document.getElementById(id),$$=sel=>[...document.querySelectorAll(sel)];
 const frameMonitor=createFrameMonitor(document.body,new URLSearchParams(location.search).has('qa'));
-let boatAB,vendorAB;
+let boatAB,vendorAB,teaAB;
 if(new URLSearchParams(location.search).has('qa')){
  boatAB=document.createElement('button');boatAB.textContent='对照旧船';boatAB.disabled=true;boatAB.style.minHeight='44px';$('frame-monitor').append(boatAB);
  boatAB.onclick=()=>{const refined=$('world').dataset.boatModel==='original';if(world?.setBoatDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.boatModel=refined?'refined':'original';boatAB.textContent=refined?'对照旧船':'恢复精修船';}};
  vendorAB=document.createElement('button');vendorAB.textContent='商贩静候对照';vendorAB.style.minHeight='44px';$('frame-monitor').append(vendorAB);
  vendorAB.onclick=()=>{if(!world?.crowd.gesture.actor)return;const enabled=!world.crowd.gesture.enabled;world.crowd.setGesturesEnabled(enabled);vendorAB.textContent=enabled?'商贩静候对照':'恢复商贩动作';$('world').dataset.vendorGestureEnabled=String(enabled);renderer.shadowMap.needsUpdate=true;};
+ teaAB=document.createElement('button');teaAB.textContent='对照原铺面';teaAB.style.minHeight='44px';teaAB.disabled=true;$('frame-monitor').append(teaAB);
+ teaAB.onclick=()=>{const refined=$('world').dataset.teaModel==='original';if(world?.setTeaDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.teaModel=refined?'refined':'original';teaAB.textContent=refined?'对照原铺面':'恢复精修檐下';}};
 }
 let archiveIndex=0,selectedObject=null,enhancements,enhancementKinds=[];
 const merchantOpen=document.createElement('button');merchantOpen.id='merchant-open';merchantOpen.className='nearby-open merchant-open hidden';merchantOpen.textContent='近看商贩 ◎';merchantOpen.onclick=()=>{const o=observations.find(o=>o.id==='merchant');if(o)openObject(o);};$('scene-ui').append(merchantOpen);
@@ -20,7 +22,7 @@ const detailText=document.createElement('span'),detailRetry=document.createEleme
 function startEnhancements(kit){
  enhancementKinds=kit.enhancementKinds;
  enhancements=createEnhancementQueue({kinds:kit.enhancementKinds,load:kit.loadEnhancement,
-  apply:(kind,model)=>{world.upgradeAsset(kind,model);renderer.shadowMap.needsUpdate=true;$('world').dataset.enhancedKinds=JSON.stringify([...world.enhancedKinds]);if(kind==='boatdetail'){$('world').dataset.boatModel='refined';if(boatAB)boatAB.disabled=false;}},
+  apply:(kind,model)=>{world.upgradeAsset(kind,model);renderer.shadowMap.needsUpdate=true;$('world').dataset.enhancedKinds=JSON.stringify([...world.enhancedKinds]);if(kind==='boatdetail'){$('world').dataset.boatModel='refined';if(boatAB)boatAB.disabled=false;}if(kind==='teadetail'){$('world').dataset.teaModel='refined';if(teaAB)teaAB.disabled=false;}},
   dispose:kit.discardEnhancement,onState:state=>{
    $('world').dataset.assetLoadState=JSON.stringify(state);
    const active=state.desired.map(kind=>state.states[kind]),error=active.some(s=>s.phase==='error'),loading=active.some(s=>s.phase==='loading'||s.phase==='idle');
@@ -76,7 +78,7 @@ function transitionChanged(state){$('silk-transition').style.opacity=String(stat
 $('transition-skip').onclick=()=>nav?.skip();
 function hideObject(){selectedObject=null;document.body.dataset.observation='';syncEnhancements();$('object-card').classList.add('hidden');}
 function syncObservations(){if(selectedObject&&selectedObject.place!==current)hideObject();const o=observations.find(o=>o.place===current);$('nearby-open').classList.toggle('hidden',!o||nav?.mode==='tour');merchantOpen.classList.toggle('hidden',current!==3||nav?.mode==='tour'||!observations.some(o=>o.id==='merchant'));if(o)$('nearby-open').textContent=o.openLabel||(o.place===0?'近看木作 ◎':'近看铺面 ◎');}
-function openObject(o){selectedObject=o;document.body.dataset.observation=o.kind==='person'?'person':o.enhancement==='boatdetail'?'boat':'';syncEnhancements();if(nav?.mode==='walk'||o.kind==='person'||o.enhancement==='boatdetail')setCatalog(false);$('object-title').textContent=o.title;$('object-text').textContent=innerWidth<=650&&o.mobileText?o.mobileText:o.text;$('object-card').classList.remove('hidden');$('object-return').classList.toggle('hidden',!nav?.inspecting);}
+function openObject(o){selectedObject=o;document.body.dataset.observation=o.kind==='person'?'person':o.kind==='frontage'?'frontage':o.enhancement==='boatdetail'?'boat':'';syncEnhancements();if(nav?.mode==='walk'||['person','frontage'].includes(o.kind)||o.enhancement==='boatdetail')setCatalog(false);$('object-title').textContent=o.title;$('object-text').textContent=innerWidth<=650&&o.mobileText?o.mobileText:o.text;$('object-card').classList.remove('hidden');$('object-return').classList.toggle('hidden',!nav?.inspecting);}
 function addObservationPin(o,i){const b=document.createElement('button');b.className='observation-pin';b.textContent=o.title;b.setAttribute('aria-label',o.label);b.dataset.observation=String(i);b.onclick=()=>openObject(o);$('observation-pins').append(b);}
 observations.forEach(addObservationPin);
 $('nearby-open').onclick=()=>{const o=observations.find(o=>o.place===current);if(o)openObject(o);};

@@ -276,5 +276,20 @@
       "primitives": 4,
       "scope": "One anchored quay-side cargo boat, requested by its observation card; excluded from initial models"
     }
+  ],
+  "observationEnhancements": [
+    {
+      "kind": "teadetail",
+      "file": "tea-frontage.glb",
+      "bytes": 1585028,
+      "sha256": "9a8c821c530008f8123adfad695769fe2b2c47fa04c4ee5508ae65ecea36185c",
+      "sourcePath": "blender/tea-frontage-v1/tea-frontage.glb",
+      "originalBytes": 2640644,
+      "originalSha256": "b6f11e032fe3f6e21ef95436a81167c2c4f4b34e43abc28ad952f7d9510449f5",
+      "encodingReceiptDirectory": "blender/web-ready-tea-v1",
+      "triangles": 29058,
+      "primitives": 6,
+      "scope": "One anchored tea frontage requested by observation; excluded from initial models"
+    }
   ]
 }

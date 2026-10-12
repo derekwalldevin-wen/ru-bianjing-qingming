@@ -1,7 +1,9 @@
 export function requiredEnhancementsForPlace(place,selected,quality){
  const ordinary=[['bridge','closeup','architecture'],['life','architecture'],['architecture','closeup'],['closeup','architecture','life'],['architecture','life'],['life','architecture']][place]||[];
  const focused=selected?.place===place?(selected.requiredEnhancements??(selected.enhancement?[selected.enhancement]:[])):[];
- return [...new Set(quality==='low'?focused:[...ordinary,...focused])];
+ // While inspecting an object, reserve the transfer slots for its own detail
+ // package. Background city enhancements resume after the card closes.
+ return [...new Set(selected?.place===place?focused:quality==='low'?[]:ordinary)];
 }
 // Stream embedded GLB bytes with a real fetch cancellation boundary. Geometry
 // parsing is not cancellable, so a late result is disposed before it can apply.

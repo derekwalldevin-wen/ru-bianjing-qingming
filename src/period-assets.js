@@ -12,7 +12,7 @@ export function prepareAssetKit(scenes,collisionBounds){
   scene.updateMatrixWorld(true);
   if(kind==='bridge')templates.set('bridge',scene);
   scene.traverse(o=>{
-   if(requiredTemplates.includes(o.name)||['detail_bridge','detail_market','detail_cargo_boat'].includes(o.name))templates.set(o.name,o);
+   if(requiredTemplates.includes(o.name)||['detail_bridge','detail_market','detail_cargo_boat','detail_tea_frontage'].includes(o.name))templates.set(o.name,o);
    if(o.isMesh){
     o.castShadow=o.receiveShadow=true;
     const list=Array.isArray(o.material)?o.material:[o.material];
@@ -35,8 +35,9 @@ export async function loadPeriodAssets(onProgress=()=>{}){
  const manifest=await fetch(new URL('../assets/models/manifest.json',import.meta.url),{cache:'no-cache',signal:AbortSignal.timeout(30000)}).then(r=>{if(!r.ok)throw new Error('模型清单读取失败');return r.json();});
  const entries=Object.fromEntries(Object.entries(assetFiles).map(([kind,file])=>[kind,manifest.assets.find(a=>a.file===file)])),received={};
  const optional={};
- for(const entry of manifest.enhancements||[]){
-  if(entry.kind!=='boatdetail'||entry.file!=='boat-observation.glb'||!Number.isInteger(entry.bytes)||entry.bytes<=0||!/^[a-f0-9]{64}$/.test(entry.sha256))throw new Error('增强模型清单不完整');
+ for(const entry of [...(manifest.enhancements||[]),...(manifest.observationEnhancements||[])]){
+  const optionalFiles={boatdetail:'boat-observation.glb',teadetail:'tea-frontage.glb'};
+  if(optionalFiles[entry.kind]!==entry.file||!Number.isInteger(entry.bytes)||entry.bytes<=0||!/^[a-f0-9]{64}$/.test(entry.sha256)||optional[entry.kind])throw new Error('增强模型清单不完整');
   optional[entry.kind]=entry;
  }
  const qa=typeof location==='undefined'?null:new URLSearchParams(location.search),fullReference=qa?.has('qa')&&qa.get('full-models')==='1';
@@ -112,6 +113,7 @@ export function createAssetInstances(scene,kit,placements){
   for(const cellItems of cells.values()){
   for(const part of templateParts(root)){
    const mesh=new T.InstancedMesh(part.geometry,part.material,cellItems.length);mesh.name=`精修/${name}/${part.name}`;
+   mesh.userData.assetTemplate=name;mesh.userData.assetPlacements=[...cellItems];
    mesh.castShadow=mesh.receiveShadow=true;
    cellItems.forEach((item,i)=>{
     transform.position.set(item.x,item.y??.62,item.z);transform.rotation.set(0,item.yaw||0,0);
