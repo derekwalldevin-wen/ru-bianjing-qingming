@@ -6,7 +6,7 @@ import {createEnhancementQueue,requiredEnhancementsForPlace} from './asset-strea
 const initialJourney=readJourney(location.hash,places);
 const $=id=>document.getElementById(id),$$=sel=>[...document.querySelectorAll(sel)];
 const frameMonitor=createFrameMonitor(document.body,new URLSearchParams(location.search).has('qa'));
-let boatAB,vendorAB,teaAB;
+let boatAB,vendorAB,teaAB,grassAB;
 if(new URLSearchParams(location.search).has('qa')){
  boatAB=document.createElement('button');boatAB.textContent='对照旧船';boatAB.disabled=true;boatAB.style.minHeight='44px';$('frame-monitor').append(boatAB);
  boatAB.onclick=()=>{const refined=$('world').dataset.boatModel==='original';if(world?.setBoatDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.boatModel=refined?'refined':'original';boatAB.textContent=refined?'对照旧船':'恢复精修船';}};
@@ -14,6 +14,8 @@ if(new URLSearchParams(location.search).has('qa')){
  vendorAB.onclick=()=>{if(!world?.crowd.gesture.actor)return;const enabled=!world.crowd.gesture.enabled;world.crowd.setGesturesEnabled(enabled);vendorAB.textContent=enabled?'商贩静候对照':'恢复商贩动作';$('world').dataset.vendorGestureEnabled=String(enabled);renderer.shadowMap.needsUpdate=true;};
  teaAB=document.createElement('button');teaAB.textContent='对照原铺面';teaAB.style.minHeight='44px';teaAB.disabled=true;$('frame-monitor').append(teaAB);
  teaAB.onclick=()=>{const refined=$('world').dataset.teaModel==='original';if(world?.setTeaDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.teaModel=refined?'refined':'original';teaAB.textContent=refined?'对照原铺面':'恢复精修檐下';}};
+ grassAB=document.createElement('button');grassAB.textContent='对照原草棚';grassAB.style.minHeight='44px';grassAB.disabled=true;$('frame-monitor').append(grassAB);
+ grassAB.onclick=()=>{const refined=$('world').dataset.grassModel==='original';if(world?.setGrassDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.grassModel=refined?'refined':'original';grassAB.textContent=refined?'对照原草棚':'恢复精修草檐';}};
 }
 let archiveIndex=0,selectedObject=null,enhancements,enhancementKinds=[];
 const merchantOpen=document.createElement('button');merchantOpen.id='merchant-open';merchantOpen.className='nearby-open merchant-open hidden';merchantOpen.textContent='近看商贩 ◎';merchantOpen.onclick=()=>{const o=observations.find(o=>o.id==='merchant');if(o)openObject(o);};$('scene-ui').append(merchantOpen);
@@ -22,7 +24,7 @@ const detailText=document.createElement('span'),detailRetry=document.createEleme
 function startEnhancements(kit){
  enhancementKinds=kit.enhancementKinds;
  enhancements=createEnhancementQueue({kinds:kit.enhancementKinds,load:kit.loadEnhancement,
-  apply:(kind,model)=>{world.upgradeAsset(kind,model);renderer.shadowMap.needsUpdate=true;$('world').dataset.enhancedKinds=JSON.stringify([...world.enhancedKinds]);if(kind==='boatdetail'){$('world').dataset.boatModel='refined';if(boatAB)boatAB.disabled=false;}if(kind==='teadetail'){$('world').dataset.teaModel='refined';if(teaAB)teaAB.disabled=false;}},
+  apply:(kind,model)=>{world.upgradeAsset(kind,model);renderer.shadowMap.needsUpdate=true;$('world').dataset.enhancedKinds=JSON.stringify([...world.enhancedKinds]);if(kind==='boatdetail'){$('world').dataset.boatModel='refined';if(boatAB)boatAB.disabled=false;}if(kind==='teadetail'){$('world').dataset.teaModel='refined';if(teaAB)teaAB.disabled=false;}if(kind==='grassdetail'){$('world').dataset.grassModel='refined';if(grassAB)grassAB.disabled=false;}},
   dispose:kit.discardEnhancement,onState:state=>{
    $('world').dataset.assetLoadState=JSON.stringify(state);
    const active=state.desired.map(kind=>state.states[kind]),error=active.some(s=>s.phase==='error'),loading=active.some(s=>s.phase==='loading'||s.phase==='idle');

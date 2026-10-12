@@ -291,5 +291,20 @@
       "primitives": 6,
       "scope": "One anchored tea frontage requested by observation; excluded from initial models"
     }
-  ]
+  ],
+  "optionalObservationAssets": {
+    "grassdetail": {
+      "kind": "grassdetail",
+      "file": "grass-frontage.glb",
+      "bytes": 1655232,
+      "sha256": "40cb904f1ae749303553a69edf93415e643d891369fbbf10c659cb22ced6d3b3",
+      "sourcePath": "blender/grass-frontage-v1/grass-frontage.glb",
+      "originalBytes": 2831344,
+      "originalSha256": "b2392726daf6a9f13ca3e37eea2c86dbc86ef8a3d50419819b12ebd33599d0c6",
+      "encodingReceiptDirectory": "blender/web-ready-grass-v1",
+      "triangles": 29764,
+      "primitives": 6,
+      "scope": "One grass frontage requested by observation; excluded from initial models"
+    }
+  }
 }

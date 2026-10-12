@@ -132,6 +132,7 @@ export function createWorld(scene,kit){
  const closeups=createCloseupDetails(scene,kit,colliders);
  const crowd=createPeriodCrowd(scene,kit,persons,bridgeHeight,clearPerson,floor),assetBatches=createAssetInstances(scene,kit,placements);
  const teaFrontage=createFeaturedFrontage(scene,placements);
+ const grassFrontage=createFeaturedFrontage(scene,placements,{template:'building_thatch',anchor:[-66,-25],detail:'detail_grass_frontage'});
  for(const [material,geometries] of batches){const mesh=new T.Mesh(mergeGeometries(geometries),material);mesh.name='街巷/岸坡与细部';mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);geometries.forEach(g=>g.dispose());}batches.clear();
  const lighting=createLighting(scene,m,river.material,lanternLocations);
  const enhancedKinds=new Set();let assetQuality='standard',anisotropy=4,boatDetailVisible=false;
@@ -142,7 +143,7 @@ export function createWorld(scene,kit){
   boats[0].worker.position.set(...(refined?[3.98,.665,.17]:[3.6,.75,.15]));boatDetailVisible=refined;return true;
  }
  function upgradeAsset(kind,nextScene){
-  if(!['architecture','bridge','life','closeup','boatdetail','teadetail'].includes(kind))throw new Error('Unsupported visual enhancement '+kind);
+  if(!['architecture','bridge','life','closeup','boatdetail','teadetail','grassdetail'].includes(kind))throw new Error('Unsupported visual enhancement '+kind);
   if(enhancedKinds.has(kind)){disposeAssetScene(nextScene,[scene,...Object.values(kit.scenes)]);return;}
   const previous=kit.scenes[kind],candidate=prepareAssetKit({...kit.scenes,[kind]:nextScene},kit.collisionBounds);
   candidate.setQuality(assetQuality,anisotropy);
@@ -151,13 +152,14 @@ export function createWorld(scene,kit){
    const staging=new T.Group(),nextBatches=createAssetInstances(staging,candidate,selected);
    const oldBatches=assetBatches.filter(mesh=>[...selected.keys()].some(name=>mesh.name.startsWith(`精修/${name}/`)));
    const nextBoats=kind==='life'?boats.map((b,i)=>i===0&&boatDetailVisible?null:createAssetObject(candidate,b.name)):[];
-   if(kind==='architecture')teaFrontage.replaceBatches(nextBatches,oldBatches);
+   if(kind==='architecture'){teaFrontage.replaceBatches(nextBatches,oldBatches);grassFrontage.replaceBatches(nextBatches,oldBatches);}
    // All construction and validation succeeded. Commit synchronously between
    // frames; crowd, collision proxies, clock and group transforms never reset.
    for(const mesh of oldBatches){scene.remove(mesh);mesh.dispose();assetBatches.splice(assetBatches.indexOf(mesh),1);}
    for(const mesh of nextBatches){scene.add(mesh);assetBatches.push(mesh);}
    nextBoats.forEach((g,i)=>{if(g)replaceObjectVisual(boats[i].g,g,[boats[i].worker]);});
   }else if(kind==='teadetail')teaFrontage.apply(candidate,assetBatches);
+  else if(kind==='grassdetail')grassFrontage.apply(candidate,assetBatches);
   else if(kind==='bridge')replaceObjectVisual(bridgeObject,createAssetObject(candidate,'bridge'));
   else if(kind==='boatdetail'){
    const visual=createAssetObject(candidate,'detail_cargo_boat');
@@ -175,5 +177,5 @@ export function createWorld(scene,kit){
  function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:closeupFloor(x,z,.62);}
  function canWalk(x,z){return valid(x,z)&&crowd.motion.validVisitor(x,z);}
  function walkSpawn(x,z){for(let ring=0;ring<16;ring++){const n=ring?ring*8:1;for(let i=0;i<n;i++){const xx=x+Math.cos(i/n*Math.PI*2)*ring*.2,zz=z+Math.sin(i/n*Math.PI*2)*ring*.2;if(canWalk(xx,zz))return [xx,zz];}}return null;}
- return {update,valid,canWalk,walkSpawn,clearPerson,floor,closeups,teaFrontage,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>teaFrontage.setVisible(value,assetBatches),setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
+ return {update,valid,canWalk,walkSpawn,clearPerson,floor,closeups,teaFrontage,grassFrontage,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>teaFrontage.setVisible(value,assetBatches),setGrassDetailVisible:value=>grassFrontage.setVisible(value,assetBatches),setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
 }
