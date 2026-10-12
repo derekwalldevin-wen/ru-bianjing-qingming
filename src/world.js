@@ -49,7 +49,17 @@ export function createWorld(scene,kit){
   for(let i=0;i<170;i++)add(orb,m.stone,[-108+rnd()*216,.61,side*(20+rnd()*1.5)],[.035+rnd()*.075,.025+rnd()*.02,.04+rnd()*.065]);
  }
  const dimensions={building_shop:[8,6],building_workshop:[9,7],building_thatch:[9,7],building_tea:[12,9]};let buildingCount=0;
- function house(name,x,z,scale=1){place(name,x,z,{yaw:z>0?Math.PI:0,scale});const [w,d]=dimensions[name];collision(x,z,w*scale/2+.15,d*scale/2+.15);buildingCount++;}
+ function houseGround(x,z,w,d){
+  // The existing bank is 0.57m, while exported foundations and the stable
+  // navigation datum start at 0.62m. A visible earth shoulder supports the
+  // building instead of leaving a 5cm air gap below its frontage. Its taper
+  // stays within the already blocked 0.28m visitor margin.
+  const edge=.18,xs=[-w-edge,-w,0,w,w+edge],zs=[-d-edge,-d,0,d,d+edge],positions=[],indices=[];
+  for(let j=0;j<5;j++)for(let i=0;i<5;i++)positions.push(x+xs[i],i===0||i===4||j===0||j===4?.57:.62,z+zs[j]);
+  for(let j=0;j<4;j++)for(let i=0;i<4;i++){const a=j*5+i;indices.push(a,a+5,a+6,a,a+6,a+1);}
+  const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();add(geometry,m.road,[0,0,0]);geometry.dispose();
+ }
+ function house(name,x,z,scale=1){place(name,x,z,{yaw:z>0?Math.PI:0,scale});const [w,d]=dimensions[name],halfWidth=w*scale/2+.15,halfDepth=d*scale/2+.15;collision(x,z,halfWidth,halfDepth);houseGround(x,z,halfWidth,halfDepth);buildingCount++;}
  // Reference-based frontages, staggered side lanes and courtyards.
  house('building_workshop',23,25,1.17);house('building_tea',-29,-26,1);house('building_thatch',-66,-25,1.04);
  for(const side of [-1,1]){
