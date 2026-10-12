@@ -71,7 +71,7 @@ export function createWorld(scene,kit){
    if(i%3===0){const z=side*(33+row*14);cube(m.wall,[x+6,1.28,z],[.3,1.3,6]);cube(m.dark,[x+6,1.98,z],[.4,.11,6.2]);collision(x+6,z,.2,3.1);}
   }
  }
- place('building_gate',88,-43,{yaw:Math.PI/2});collision(88,-48,4,2);collision(88,-38,4,2);buildingCount++;
+ place('building_gate',88,-43,{yaw:Math.PI/2});collision(88,-48,4,2);collision(88,-38,4,2);houseGround(88,-48,4,2);houseGround(88,-38,4,2);buildingCount++;
  const bridgeObject=createAssetObject(kit,'bridge');scene.add(bridgeObject);
  // Bridge-end bird standards are visible in the painting; function is debated.
  for(const side of [-1,1])for(const x of [-4.35,4.35]){const z=side*12.6;post(m.pale,[x,4.65,z],.095,8.1);beam([x-1,7.4,z],[x+1,7.4,z],.08);beam([x,7.7,z-.5],[x,7.7,z+.5],.065);add(orb,m.pale,[x,8.83,z],[.24,.11,.10]);beam([x+.15,8.85,z],[x+.2,9.1,z],.045,m.pale);beam([x+.18,9.1,z],[x+.38,9.08,z],.035,m.dark);}
