@@ -6,7 +6,7 @@ import {createEnhancementQueue,requiredEnhancementsForPlace} from './asset-strea
 const initialJourney=readJourney(location.hash,places);
 const $=id=>document.getElementById(id),$$=sel=>[...document.querySelectorAll(sel)];
 const frameMonitor=createFrameMonitor(document.body,new URLSearchParams(location.search).has('qa'));
-let boatAB,vendorAB,teaAB,grassAB,cartAB;
+let boatAB,vendorAB,teaAB,grassAB,cartAB,groundingAB;
 if(new URLSearchParams(location.search).has('qa')){
  boatAB=document.createElement('button');boatAB.textContent='对照旧船';boatAB.disabled=true;boatAB.style.minHeight='44px';$('frame-monitor').append(boatAB);
  boatAB.onclick=()=>{const refined=$('world').dataset.boatModel==='original';if(world?.setBoatDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.boatModel=refined?'refined':'original';boatAB.textContent=refined?'对照旧船':'恢复精修船';}};
@@ -18,12 +18,15 @@ if(new URLSearchParams(location.search).has('qa')){
  grassAB.onclick=()=>{const refined=$('world').dataset.grassModel==='original';if(world?.setGrassDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.grassModel=refined?'refined':'original';grassAB.textContent=refined?'对照原草棚':'恢复精修草檐';}};
  cartAB=document.createElement('button');cartAB.textContent='对照原牛车';cartAB.style.minHeight='44px';cartAB.disabled=true;$('frame-monitor').append(cartAB);
  cartAB.onclick=()=>{const refined=$('world').dataset.cartModel==='original';if(world?.setCartDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.cartModel=refined?'refined':'original';cartAB.textContent=refined?'对照原牛车':'恢复精修牛车';}};
+ groundingAB=document.createElement('button');groundingAB.textContent='对照旧脚底';groundingAB.style.minHeight='44px';groundingAB.disabled=true;$('frame-monitor').append(groundingAB);
+ groundingAB.onclick=()=>{if(!world)return;const enabled=!world.crowd.groundingEnabled;world.crowd.setGroundingEnabled(enabled);$('world').dataset.groundingMode=enabled?'terrain':'logical';groundingAB.textContent=enabled?'对照旧脚底':'恢复人物贴地';renderer.shadowMap.needsUpdate=true;};
 }
 let archiveIndex=0,selectedObject=null,enhancements,enhancementKinds=[];
 const merchantOpen=document.createElement('button');merchantOpen.id='merchant-open';merchantOpen.className='nearby-open merchant-open hidden';merchantOpen.textContent='近看商贩 ◎';merchantOpen.onclick=()=>{const o=observations.find(o=>o.id==='merchant');if(o)openObject(o);};$('scene-ui').append(merchantOpen);
 const detailStatus=document.createElement('aside');detailStatus.id='asset-detail-status';detailStatus.className='hidden';detailStatus.setAttribute('aria-live','polite');
 const detailText=document.createElement('span'),detailRetry=document.createElement('button');detailRetry.textContent='重试';detailRetry.onclick=()=>enhancements?.retry();detailStatus.append(detailText,detailRetry);$('scene-ui').append(detailStatus);
 function startEnhancements(kit){
+ if(groundingAB)groundingAB.disabled=false;$('world').dataset.groundingMode='terrain';
  enhancementKinds=kit.enhancementKinds;
  enhancements=createEnhancementQueue({kinds:kit.enhancementKinds,load:kit.loadEnhancement,
   apply:(kind,model)=>{world.upgradeAsset(kind,model);renderer.shadowMap.needsUpdate=true;$('world').dataset.enhancedKinds=JSON.stringify([...world.enhancedKinds]);if(kind==='boatdetail'){$('world').dataset.boatModel='refined';if(boatAB)boatAB.disabled=false;}if(kind==='teadetail'){$('world').dataset.teaModel='refined';if(teaAB)teaAB.disabled=false;}if(kind==='grassdetail'){$('world').dataset.grassModel='refined';if(grassAB)grassAB.disabled=false;}if(kind==='cartdetail'){$('world').dataset.cartModel='refined';if(cartAB)cartAB.disabled=false;}},
