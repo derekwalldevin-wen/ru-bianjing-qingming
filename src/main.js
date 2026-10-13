@@ -6,7 +6,7 @@ import {createEnhancementQueue,requiredEnhancementsForPlace} from './asset-strea
 const initialJourney=readJourney(location.hash,places);
 const $=id=>document.getElementById(id),$$=sel=>[...document.querySelectorAll(sel)];
 const frameMonitor=createFrameMonitor(document.body,new URLSearchParams(location.search).has('qa'));
-let boatAB,vendorAB,teaAB,grassAB;
+let boatAB,vendorAB,teaAB,grassAB,cartAB;
 if(new URLSearchParams(location.search).has('qa')){
  boatAB=document.createElement('button');boatAB.textContent='对照旧船';boatAB.disabled=true;boatAB.style.minHeight='44px';$('frame-monitor').append(boatAB);
  boatAB.onclick=()=>{const refined=$('world').dataset.boatModel==='original';if(world?.setBoatDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.boatModel=refined?'refined':'original';boatAB.textContent=refined?'对照旧船':'恢复精修船';}};
@@ -16,6 +16,8 @@ if(new URLSearchParams(location.search).has('qa')){
  teaAB.onclick=()=>{const refined=$('world').dataset.teaModel==='original';if(world?.setTeaDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.teaModel=refined?'refined':'original';teaAB.textContent=refined?'对照原铺面':'恢复精修檐下';}};
  grassAB=document.createElement('button');grassAB.textContent='对照原草棚';grassAB.style.minHeight='44px';grassAB.disabled=true;$('frame-monitor').append(grassAB);
  grassAB.onclick=()=>{const refined=$('world').dataset.grassModel==='original';if(world?.setGrassDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.grassModel=refined?'refined':'original';grassAB.textContent=refined?'对照原草棚':'恢复精修草檐';}};
+ cartAB=document.createElement('button');cartAB.textContent='对照原牛车';cartAB.style.minHeight='44px';cartAB.disabled=true;$('frame-monitor').append(cartAB);
+ cartAB.onclick=()=>{const refined=$('world').dataset.cartModel==='original';if(world?.setCartDetailVisible(refined)){renderer.shadowMap.needsUpdate=true;$('world').dataset.cartModel=refined?'refined':'original';cartAB.textContent=refined?'对照原牛车':'恢复精修牛车';}};
 }
 let archiveIndex=0,selectedObject=null,enhancements,enhancementKinds=[];
 const merchantOpen=document.createElement('button');merchantOpen.id='merchant-open';merchantOpen.className='nearby-open merchant-open hidden';merchantOpen.textContent='近看商贩 ◎';merchantOpen.onclick=()=>{const o=observations.find(o=>o.id==='merchant');if(o)openObject(o);};$('scene-ui').append(merchantOpen);
@@ -24,7 +26,7 @@ const detailText=document.createElement('span'),detailRetry=document.createEleme
 function startEnhancements(kit){
  enhancementKinds=kit.enhancementKinds;
  enhancements=createEnhancementQueue({kinds:kit.enhancementKinds,load:kit.loadEnhancement,
-  apply:(kind,model)=>{world.upgradeAsset(kind,model);renderer.shadowMap.needsUpdate=true;$('world').dataset.enhancedKinds=JSON.stringify([...world.enhancedKinds]);if(kind==='boatdetail'){$('world').dataset.boatModel='refined';if(boatAB)boatAB.disabled=false;}if(kind==='teadetail'){$('world').dataset.teaModel='refined';if(teaAB)teaAB.disabled=false;}if(kind==='grassdetail'){$('world').dataset.grassModel='refined';if(grassAB)grassAB.disabled=false;}},
+  apply:(kind,model)=>{world.upgradeAsset(kind,model);renderer.shadowMap.needsUpdate=true;$('world').dataset.enhancedKinds=JSON.stringify([...world.enhancedKinds]);if(kind==='boatdetail'){$('world').dataset.boatModel='refined';if(boatAB)boatAB.disabled=false;}if(kind==='teadetail'){$('world').dataset.teaModel='refined';if(teaAB)teaAB.disabled=false;}if(kind==='grassdetail'){$('world').dataset.grassModel='refined';if(grassAB)grassAB.disabled=false;}if(kind==='cartdetail'){$('world').dataset.cartModel='refined';if(cartAB)cartAB.disabled=false;}},
   dispose:kit.discardEnhancement,onState:state=>{
    $('world').dataset.assetLoadState=JSON.stringify(state);
    const active=state.desired.map(kind=>state.states[kind]),error=active.some(s=>s.phase==='error'),loading=active.some(s=>s.phase==='loading'||s.phase==='idle');
@@ -80,7 +82,7 @@ function transitionChanged(state){$('silk-transition').style.opacity=String(stat
 $('transition-skip').onclick=()=>nav?.skip();
 function hideObject(){selectedObject=null;document.body.dataset.observation='';syncEnhancements();$('object-card').classList.add('hidden');}
 function syncObservations(){if(selectedObject&&selectedObject.place!==current)hideObject();const o=observations.find(o=>o.place===current);$('nearby-open').classList.toggle('hidden',!o||nav?.mode==='tour');merchantOpen.classList.toggle('hidden',current!==3||nav?.mode==='tour'||!observations.some(o=>o.id==='merchant'));if(o)$('nearby-open').textContent=o.openLabel||(o.place===0?'近看木作 ◎':'近看铺面 ◎');}
-function openObject(o){selectedObject=o;document.body.dataset.observation=o.kind==='person'?'person':o.kind==='frontage'?'frontage':o.enhancement==='boatdetail'?'boat':'';syncEnhancements();if(nav?.mode==='walk'||['person','frontage'].includes(o.kind)||o.enhancement==='boatdetail')setCatalog(false);$('object-title').textContent=o.title;$('object-text').textContent=innerWidth<=650&&o.mobileText?o.mobileText:o.text;$('object-card').classList.remove('hidden');$('object-return').classList.toggle('hidden',!nav?.inspecting);}
+function openObject(o){selectedObject=o;document.body.dataset.observation=o.kind==='person'?'person':['frontage','cart'].includes(o.kind)?'frontage':o.enhancement==='boatdetail'?'boat':'';syncEnhancements();if(nav?.mode==='walk'||['person','frontage','cart'].includes(o.kind)||o.enhancement==='boatdetail')setCatalog(false);$('object-title').textContent=o.title;$('object-text').textContent=innerWidth<=650&&o.mobileText?o.mobileText:o.text;$('object-card').classList.remove('hidden');$('object-return').classList.toggle('hidden',!nav?.inspecting);}
 function addObservationPin(o,i){const b=document.createElement('button');b.className='observation-pin';b.textContent=o.title;b.setAttribute('aria-label',o.label);b.dataset.observation=String(i);b.onclick=()=>openObject(o);$('observation-pins').append(b);}
 observations.forEach(addObservationPin);
 $('nearby-open').onclick=()=>{const o=observations.find(o=>o.place===current);if(o)openObject(o);};

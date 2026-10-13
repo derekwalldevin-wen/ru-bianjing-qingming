@@ -305,6 +305,19 @@
       "triangles": 29764,
       "primitives": 6,
       "scope": "One grass frontage requested by observation; excluded from initial models"
+    },
+    "cartdetail": {
+      "kind": "cartdetail",
+      "file": "cart-observation.glb",
+      "bytes": 848824,
+      "sha256": "564dd650648721b746e6a42c64389814d7a1d6358a91049657d52bc58098a7db",
+      "sourcePath": "blender/cart-observation-v1/cart-observation.glb",
+      "originalBytes": 1353300,
+      "originalSha256": "19f5a6c11464a511d0f01efed5ae3cfb940d1ddac57c61c6745d95794631aff9",
+      "encodingReceiptDirectory": "blender/web-ready-cart-v1",
+      "triangles": 17188,
+      "primitives": 8,
+      "scope": "One focused ox cart; requested only by observation, excluded from initial six assets"
     }
   }
 }
