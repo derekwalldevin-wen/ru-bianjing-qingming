@@ -2,6 +2,7 @@ import {places,tour} from './content.js?v=original-scroll-v1';
 import {readJourney,journeyLink} from './journey-state.js';
 import {createFrameMonitor} from './frame-monitor.js';
 import {createJourneyAtlas} from './journey-atlas.js?v=journey-atlas-v1';
+import {createObjectStoryReader,objectStories,storyKey} from './object-stories.js?v=object-stories-v1';
 import {observations,registerVendorObservation} from './observations.js?v=original-scroll-v1';
 import {createEnhancementQueue,requiredEnhancementsForPlace} from './asset-stream.js';
 const initialJourney=readJourney(location.hash,places);
@@ -22,7 +23,7 @@ if(new URLSearchParams(location.search).has('qa')){
  groundingAB=document.createElement('button');groundingAB.textContent='对照旧脚底';groundingAB.style.minHeight='44px';groundingAB.disabled=true;$('frame-monitor').append(groundingAB);
  groundingAB.onclick=()=>{if(!world)return;const enabled=!world.crowd.groundingEnabled;world.crowd.setGroundingEnabled(enabled);$('world').dataset.groundingMode=enabled?'terrain':'logical';groundingAB.textContent=enabled?'对照旧脚底':'恢复人物贴地';renderer.shadowMap.needsUpdate=true;};
 }
-let archiveIndex=0,selectedObject=null,enhancements,enhancementKinds=[];
+let archiveIndex=0,selectedObject=null,enhancements,enhancementKinds=[],storyReader;
 const merchantOpen=document.createElement('button');merchantOpen.id='merchant-open';merchantOpen.className='nearby-open merchant-open hidden';merchantOpen.textContent='近看商贩 ◎';merchantOpen.onclick=()=>{const o=observations.find(o=>o.id==='merchant');if(o)openObject(o);};$('scene-ui').append(merchantOpen);
 const detailStatus=document.createElement('aside');detailStatus.id='asset-detail-status';detailStatus.className='hidden';detailStatus.setAttribute('aria-live','polite');
 const detailText=document.createElement('span'),detailRetry=document.createElement('button');detailRetry.textContent='重试';detailRetry.onclick=()=>enhancements?.retry();detailStatus.append(detailText,detailRetry);$('scene-ui').append(detailStatus);
@@ -87,9 +88,9 @@ $('catalog-toggle').onclick=()=>atlas.open(current);
 setCatalog();
 function transitionChanged(state){$('silk-transition').style.opacity=String(state.opacity);$('transition-status').classList.toggle('hidden',!state.active);document.body.dataset.transition=state.active?state.kind:'idle';$('world').dataset.pendingPlace=state.pending?places[state.pending.index].id:'';$$('#places button').forEach((b,i)=>b.classList.toggle('pending',state.active&&i===state.pending.index));if(state.active)$('transition-name').textContent='前往 · '+places[state.pending.index].name;}
 $('transition-skip').onclick=()=>nav?.skip();
-function hideObject(){selectedObject=null;document.body.dataset.observation='';syncEnhancements();$('object-card').classList.add('hidden');}
+function hideObject(){selectedObject=null;document.body.dataset.observation='';document.body.dataset.story='closed';storyReader?.close();syncEnhancements();$('object-card').classList.add('hidden');}
 function syncObservations(){if(selectedObject&&selectedObject.place!==current)hideObject();const o=observations.find(o=>o.place===current);$('nearby-open').classList.toggle('hidden',!o||nav?.mode==='tour');merchantOpen.classList.toggle('hidden',current!==3||nav?.mode==='tour'||!observations.some(o=>o.id==='merchant'));if(o)$('nearby-open').textContent=o.openLabel||(o.place===0?'近看木作 ◎':'近看铺面 ◎');}
-function openObject(o){selectedObject=o;document.body.dataset.observation=o.kind==='person'?'person':['frontage','cart'].includes(o.kind)?'frontage':o.enhancement==='boatdetail'?'boat':'';syncEnhancements();if(nav?.mode==='walk'||['person','frontage','cart'].includes(o.kind)||o.enhancement==='boatdetail')setCatalog(false);$('object-title').textContent=o.title;$('object-text').textContent=innerWidth<=650&&o.mobileText?o.mobileText:o.text;$('object-card').classList.remove('hidden');$('object-return').classList.toggle('hidden',!nav?.inspecting);}
+function openObject(o){storyReader?.close();document.body.dataset.story='closed';selectedObject=o;document.body.dataset.observation=o.kind==='person'?'person':['frontage','cart'].includes(o.kind)?'frontage':o.enhancement==='boatdetail'?'boat':'';syncEnhancements();if(nav?.mode==='walk'||['person','frontage','cart'].includes(o.kind)||o.enhancement==='boatdetail')setCatalog(false);$('object-title').textContent=o.title;$('object-text').textContent=innerWidth<=650&&o.mobileText?o.mobileText:o.text;$('object-story-start').hidden=!objectStories[storyKey(o)];$('object-card').classList.remove('hidden');$('object-return').classList.toggle('hidden',!nav?.inspecting);}
 function addObservationPin(o,i){const b=document.createElement('button');b.className='observation-pin';b.textContent=o.title;b.setAttribute('aria-label',o.label);b.dataset.observation=String(i);b.onclick=()=>openObject(o);$('observation-pins').append(b);}
 observations.forEach(addObservationPin);
 $('nearby-open').onclick=()=>{const o=observations.find(o=>o.place===current);if(o)openObject(o);};
@@ -97,6 +98,8 @@ $('object-inspect').onclick=()=>{if(selectedObject&&nav?.inspect(selectedObject)
 $('object-archive').onclick=()=>{if(selectedObject)openArchive(selectedObject.place);};
 function returnFromObject(){hideObject();nav?.closeInspection();document.body.dataset.inspecting='false';}
 $('object-close').onclick=returnFromObject;$('object-return').onclick=returnFromObject;
+storyReader=createObjectStoryReader({root:$('object-story'),archive:openArchive,exit:returnFromObject,storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)}});
+$('object-story-start').onclick=()=>{const o=selectedObject;if(o&&nav?.inspect(o)&&storyReader.open(o)){document.body.dataset.story='open';document.body.dataset.inspecting='true';setCatalog(false);}};
 function projectObservations(vector){$$('#observation-pins button').forEach((b,i)=>{const o=observations[i];vector.set(...o.point).project(camera);const x=(vector.x*.5+.5)*innerWidth,y=(-vector.y*.5+.5)*innerHeight;const visible=current===o.place&&nav.mode!=='tour'&&!nav.transitioning&&!nav.inspecting&&vector.z>-1&&vector.z<1&&x>20&&x<innerWidth-145&&y>145&&y<innerHeight-(document.body.dataset.catalog==='closed'?175:240);b.style.display=visible?'flex':'none';if(visible)b.style.transform=`translate(${x}px,${y}px)`;});}
 function savePreferences(){try{localStorage.setItem('bianjing-preferences',JSON.stringify({quality:$('quality').value,reduced}));}catch{}}
 try{const pref=JSON.parse(localStorage.getItem('bianjing-preferences')||'{}');if(['low','standard','high'].includes(pref.quality))$('quality').value=pref.quality;if(typeof pref.reduced==='boolean'){reduced=pref.reduced;$('reduced').checked=reduced;}}catch{}
