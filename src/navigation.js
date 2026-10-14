@@ -40,7 +40,7 @@ export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>
   return {index:i,mode:'overview',position:p.view,look:p.target};
  }
  function request(dest,immediate=false,allowPath=true){
-  if(!dest)return false;clear();if(mode==='overview'&&!transition.active){controls.enableDamping=false;controls.update();controls.enableDamping=!reduced;}let options={immediate};
+  if(!dest)return false;clear();if(mode==='overview'&&!transition.active){controls.enableDamping=false;controls.update();controls.enableDamping=!reduced;}let options={immediate,duration:dest.index!==index?1.25:.62};
   // Only authored elevated overview routes use continuous travel. Arbitrary
   // orbit poses and all walking transfers use the opaque safe-spawn handoff.
   if(allowPath&&mode==='overview'&&dest.mode==='overview'&&((index===0&&dest.index===3)||(index===3&&dest.index===0))&&camera.position.distanceTo(new T.Vector3(...places[index].view))<4){
