@@ -7,7 +7,7 @@ import {createSceneTransition} from './scene-transition.js';
 import {observations} from './observations.js';
 export {observations} from './observations.js';
 
-export const bridgeMarketPath=[[35,28,39],[24,30,15],[0,28,-3],[-22,25,-10],[-44,18,-8]];
+export const bridgeMarketPath=[[46,21,56],[24,30,15],[0,28,-3],[-22,25,-10],[-48,11,1]];
 
 export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>{},onTransition=()=>{},onError=()=>{}){
  const controls=new OrbitControls(camera,canvas);
@@ -43,7 +43,7 @@ export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>
   // Only authored elevated overview routes use continuous travel. Arbitrary
   // orbit poses and all walking transfers use the opaque safe-spawn handoff.
   if(allowPath&&mode==='overview'&&dest.mode==='overview'&&((index===0&&dest.index===3)||(index===3&&dest.index===0))&&camera.position.distanceTo(new T.Vector3(...places[index].view))<4){
-   const points=(index===0?bridgeMarketPath:[...bridgeMarketPath].reverse()).map(p=>new T.Vector3(...p));points[0]=camera.position.clone();
+   const points=(index===0?bridgeMarketPath:[...bridgeMarketPath].reverse()).map(p=>new T.Vector3(...p));points[0]=camera.position.clone();points[points.length-1]=new T.Vector3(...dest.position);
    const curve=new T.CatmullRomCurve3(points,false,'centripetal');const from=controls.target.clone(),to=new T.Vector3(...dest.look);
    options={immediate,kind:'flight',duration:2.1,path:t=>{const eased=t*t*(3-2*t);return {...dest,position:curve.getPointAt(eased).toArray(),look:new T.Vector3().lerpVectors(from,to,eased).toArray()};}};
   }

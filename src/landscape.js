@@ -107,7 +107,7 @@ export function createLandscape(scene,{materials,colliders}){
     const ripple=1+.09*Math.sin(a*3+i)+.045*Math.sin(a*7+row*.7);
     const rise=Math.pow(t,.77)*(1+.045*Math.sin(a*4+row*.8));
     const vx=x+Math.cos(a)*sx*rad*ripple+t*sx*.12,vy=-.12+peakHeight*rise,vz=z+Math.sin(a)*sz*rad*ripple+t*sz*.08;
-    p.push(vx,vy,vz);const col=foot.clone().lerp(day,T.MathUtils.smoothstep(t,.02,.70));col.multiplyScalar(.89+.11*Math.sin(a*2.6+row*.5)**2);c.push(col.r,col.g,col.b);
+    p.push(vx,vy,vz);const col=foot.clone().lerp(day,T.MathUtils.smoothstep(t,.02,.70)).lerp(new T.Color(['#2f7188','#4f8898','#81a4ac'][layer]),T.MathUtils.smoothstep(t,.65,1)*.72);col.multiplyScalar(.89+.11*Math.sin(a*2.6+row*.5)**2);c.push(col.r,col.g,col.b);
     if(row<rings-1&&k<sectors){const b=row*(sectors+1)+k;indices.push(b,b+sectors+1,b+1,b+1,b+sectors+1,b+sectors+2);}
    }
    const apex=p.length/3;p.push(x+sx*.12,peakHeight-.12,z+sz*.08);c.push(day.r,day.g,day.b);for(let k=0;k<sectors;k++){const b=(rings-1)*(sectors+1)+k;indices.push(b,apex,b+1);}
