@@ -11,7 +11,7 @@ import {createCloseupDetails,closeupFloor} from './closeup-details.js';
 import {createFeaturedFrontage} from './featured-frontage.js';
 import {fitCartToGround} from './cart-grounding.js';
 import {createTerrainSupport} from './terrain-support.js';
-import {createLandscape} from './landscape.js?v=ink-landscape-v2';
+import {createLandscape} from './landscape.js?v=ink-landscape-v3';
 import {expandedWalkBounds} from './landscape-layout.js';
 
 export const bridgeHeight=z=>.68+4.7*Math.max(0,1-(z/13.5)**2);

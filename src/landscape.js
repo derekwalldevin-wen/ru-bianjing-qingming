@@ -2,7 +2,7 @@ import * as T from 'three';
 import {mergeGeometries} from '../vendor/BufferGeometryUtils.js';
 import {projectSurfaceUV} from './surface-textures.js';
 import {canalCenter,canalHalfWidth,bankHeight,landscapeBounds} from './landscape-layout.js';
-import {installLandscapeInk} from './ink-landscape.js?v=ink-landscape-v2';
+import {installLandscapeInk} from './ink-landscape.js?v=ink-landscape-v3';
 
 // Low-cost actual 3D city and mineral-colour mountains. No bitmap backdrop,
 // no new GLB, and no second water reflection pass.

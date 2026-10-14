@@ -2,7 +2,7 @@
 // downloads, screen filter, or additional render pass.
 export function installLandscapeInk(material,{foliage=false}={}){
  material.userData.inkDetail=1;material.userData.inkKind=foliage?'point-leaf':'mountain';
- material.customProgramCacheKey=()=>`landscape-ink-v2/${foliage?1:0}`;
+ material.customProgramCacheKey=()=>`landscape-ink-v3/${foliage?1:0}`;
  material.onBeforeCompile=shader=>{
   shader.uniforms.landscapeNight={value:0};shader.uniforms.inkDetail={value:material.userData.inkDetail};material.userData.shader=shader;
   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vLandscapeWorld;\nvarying vec3 vInkNormal;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvLandscapeWorld=(modelMatrix*vec4(transformed,1.0)).xyz;\nvInkNormal=normalize(mat3(modelMatrix)*normal);');
@@ -32,8 +32,8 @@ export function installLandscapeInk(material,{foliage=false}={}){
    float dry=0.0;
    if(inkDetail>.5){
     // Seeded, tapered short strokes avoid a repeating sine-stripe pattern.
-    vec2 patch=vec2(brush.x*2.4+brush.y*.17,brush.y*2.7);
-    vec2 cell=floor(patch),stroke=fract(patch)-.5;
+    vec2 brushGrid=vec2(brush.x*2.4+brush.y*.17,brush.y*2.7);
+    vec2 cell=floor(brushGrid),stroke=fract(brushGrid)-.5;
     float seed=inkHash(cell),offset=(inkHash(cell+vec2(7.0,13.0))-.5)*.45;
     float slant=(inkHash(cell+vec2(19.0,3.0))-.5)*.9;
     float taper=1.0-smoothstep(.15,.43,abs(stroke.y));
