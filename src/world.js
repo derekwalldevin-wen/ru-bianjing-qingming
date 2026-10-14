@@ -11,7 +11,7 @@ import {createCloseupDetails,closeupFloor} from './closeup-details.js?v=original
 import {createFeaturedFrontage} from './featured-frontage.js';
 import {fitCartToGround} from './cart-grounding.js?v=original-scroll-v1';
 import {createTerrainSupport} from './terrain-support.js?v=original-scroll-v1';
-import {createLandscape} from './landscape.js?v=original-scroll-v1';
+import {createLandscape} from './landscape.js?v=painterly-relief-v1';
 import {expandedWalkBounds,bankHeight,canalCenter,canalHalfWidth} from './landscape-layout.js?v=original-scroll-v1';
 import {visibleRoofPlan,heroFrames,reframe,distanceToRoute,streetRoute,paintedGate} from './painting-layout.js?v=original-scroll-v1';
 

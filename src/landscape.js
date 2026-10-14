@@ -108,12 +108,16 @@ export function createLandscape(scene,{materials,colliders}){
    const height=(layer===0?35:layer===1?78:110)+rnd()*(layer===0?40:90),sx=(layer===0?65:110)+rnd()*65,sz=sx*(.58+rnd()*.27);
    // River openings stay low so water can disappear naturally into haze.
    const peakHeight=alongRiver?height*.33:height;
-   const rings=9,sectors=18,p=[],c=[],indices=[];
+   const rings=9,sectors=24,p=[],c=[],indices=[];
    for(let row=0;row<rings;row++)for(let k=0;k<=sectors;k++){
-    const t=row/rings,a=k/sectors*Math.PI*2,rad=1-t;
-    const ripple=1+.09*Math.sin(a*3+i)+.045*Math.sin(a*7+row*.7);
-    const rise=Math.pow(t,.77)*(1+.045*Math.sin(a*4+row*.8));
-    const vx=x+Math.cos(a)*sx*rad*ripple+t*sx*.12,vy=-.12+peakHeight*rise,vz=z+Math.sin(a)*sz*rad*ripple+t*sz*.08;
+    const t=row/rings,a=k/sectors*Math.PI*2;
+    // Rounded shoulders with an offset summit replace the repeated cones.
+    // Angular lobes taper out at the crown, so it has no noisy overshoot.
+    const rad=Math.cos(t*Math.PI/2);
+    const ripple=1+.10*Math.sin(a*2+i)+.045*Math.sin(a*5+i*.71)*(1-t);
+    const rise=Math.pow(Math.sin(t*Math.PI/2),1.20)*(1+.045*Math.sin(a*3+i*.83)*(1-t));
+    const lean=t*t*(3-2*t);
+    const vx=x+Math.cos(a)*sx*rad*ripple+lean*sx*.12,vy=-.12+peakHeight*rise,vz=z+Math.sin(a)*sz*rad*ripple+lean*sz*.08;
     p.push(vx,vy,vz);const col=foot.clone().lerp(day,T.MathUtils.smoothstep(t,.02,.70)).lerp(new T.Color(['#2f7188','#4f8898','#81a4ac'][layer]),T.MathUtils.smoothstep(t,.65,1)*.72);col.multiplyScalar(.89+.11*Math.sin(a*2.6+row*.5)**2);c.push(col.r,col.g,col.b);
     if(row<rings-1&&k<sectors){const b=row*(sectors+1)+k;indices.push(b,b+sectors+1,b+1,b+1,b+sectors+1,b+sectors+2);}
    }
