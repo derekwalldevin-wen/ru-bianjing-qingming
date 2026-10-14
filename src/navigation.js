@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {createDirectionController} from '../vendor/cheoma-heading.js';
-import {places,tour} from './content.js';
+import {places,tour} from './content.js?v=qinglv-city-v2';
 import {createWalkMotion} from './walk-motion.js';
 import {createSceneTransition} from './scene-transition.js';
 import {observations} from './observations.js';
