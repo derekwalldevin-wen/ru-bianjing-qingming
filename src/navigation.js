@@ -11,7 +11,7 @@ export const bridgeMarketPath=[[35,28,39],[24,30,15],[0,28,-3],[-22,25,-10],[-44
 
 export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>{},onTransition=()=>{},onError=()=>{}){
  const controls=new OrbitControls(camera,canvas);
- Object.assign(controls,{enableDamping:true,dampingFactor:.065,minDistance:8,maxDistance:130,maxPolarAngle:Math.PI*.475,minPolarAngle:.12,panSpeed:.6,zoomSpeed:.7});controls.target.set(0,2,0);
+ Object.assign(controls,{enableDamping:true,dampingFactor:.065,minDistance:8,maxDistance:220,maxPolarAngle:Math.PI*.475,minPolarAngle:.12,panSpeed:.6,zoomSpeed:.7});controls.target.set(0,2,0);
  const motion=createWalkMotion(),keys=new Set(),facing=new T.Vector3(),look=new T.Vector3();
  const lookController=createDirectionController({maxYawSpeed:Math.PI*2,maxYawAcceleration:Math.PI*10});
  let mode='overview',yaw=0,pitch=0,drag=null,reduced=false,index=0,tourIndex=0,tourTime=0,paused=false,enabled=true,detailReturn=null;
@@ -68,7 +68,7 @@ export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>
  function update(dt){
   if(!enabled||document.hidden)return;
   if(transition.active){transition.update(dt);return;}
-  if(mode==='overview'){controls.update();controls.target.x=T.MathUtils.clamp(controls.target.x,-100,100);controls.target.z=T.MathUtils.clamp(controls.target.z,-65,65);controls.target.y=T.MathUtils.clamp(controls.target.y,0,12);return;}
+  if(mode==='overview'){controls.update();controls.target.x=T.MathUtils.clamp(controls.target.x,-174,174);controls.target.z=T.MathUtils.clamp(controls.target.z,-98,98);controls.target.y=T.MathUtils.clamp(controls.target.y,0,12);return;}
   if(mode==='walk'){
    const forward=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0),side=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0);
    const {x,z}=motion.step({x:camera.position.x,z:camera.position.z,forward,side,yaw,fast:keys.has('ShiftLeft'),dt,allowed:world.canWalk||world.valid});camera.position.set(x,world.floor(x,z)+1.65,z);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);return;

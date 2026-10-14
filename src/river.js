@@ -1,5 +1,11 @@
 import * as T from 'three';
 import {Reflector} from '../vendor/Reflector.js';
+import {canalCenter,canalHalfWidth} from './landscape-layout.js';
+
+const canalFunctions=/* glsl */`
+ float canalOffset(float x){float t=max(0.0,abs(x)-135.0);return sign(x)*(t*t/(t+180.0)*.39+sin(t/130.0)*t/(t+90.0)*26.0);}
+ float bankDistance(vec2 p){return 10.25+max(0.0,abs(p.x)-145.0)*.027-abs(p.y-canalOffset(p.x));}
+`;
 
 // The official r180 Reflector supplies the reflected camera and clipping plane.
 // River shading is authored here: quiet ripples, bank tint and boat-local wakes.
@@ -18,10 +24,11 @@ const shader={
   uniform mat4 textureMatrix;
   varying vec3 vWorld;
   varying vec4 vMirror;
+  ${canalFunctions}
   #include <fog_pars_vertex>
   void main(){
    vec4 baseWorld=modelMatrix*vec4(position,1.0);
-   float bankFade=smoothstep(0.0,1.3,10.25-abs(baseWorld.z));
+   float bankFade=smoothstep(0.0,1.3,bankDistance(baseWorld.xz));
    float height=(sin(baseWorld.x*.62+baseWorld.z*.91-time*.65)*.023
                +sin(baseWorld.x*1.27-baseWorld.z*.65-time*.91)*.012)*bankFade;
    vec3 displaced=position;displaced.z+=height;
@@ -39,6 +46,7 @@ const shader={
   uniform vec4 boats[5];
   varying vec3 vWorld;
   varying vec4 vMirror;
+  ${canalFunctions}
   #include <common>
   #include <fog_pars_fragment>
 
@@ -52,7 +60,7 @@ const shader={
    vec3 n=normalize(vec3(-slope.x,1.0,-slope.y));
    vec3 view=normalize(cameraPosition-vWorld);
    float fresnel=pow(1.0-max(dot(view,n),0.0),4.0);
-   float shore=1.0-smoothstep(.15,2.5,10.25-abs(p.y));
+   float shore=1.0-smoothstep(.15,2.5,bankDistance(p));
    float broad=.5+.5*sin(a*.36+sin(b*.3));
    vec3 deep=mix(vec3(.14,.23,.19),vec3(.23,.32,.23),broad);
    vec3 shallow=vec3(.34,.39,.26);
@@ -78,7 +86,7 @@ const shader={
    result+=sunColor*(sparkle*.66+sheen)*sunGain*mix(1.0,.24,night);
 
    // Narrow, broken lines along the stone quay; restrained at this river's scale.
-   float edgeDistance=10.25-abs(p.y);
+   float edgeDistance=bankDistance(p);
    float line=exp(-pow((edgeDistance-.24-.06*sin(p.x*1.7-time*.8))/.085,2.0));
    float foam=line*smoothstep(-.35,.55,sin(p.x*.95-time*.45)+sin(p.x*2.3)*.35)*.22;
    float wake=0.0;
@@ -117,6 +125,21 @@ export function createRiver(scene){
  mesh.name='汴河 · 流波与倒影';mesh.rotation.x=-Math.PI/2;mesh.position.y=.04;
  mesh.material.fog=true;mesh.castShadow=false;scene.add(mesh);
  const uniforms=mesh.material.uniforms,reflect=mesh.onBeforeRender;
+ const farGeometry=new T.BufferGeometry(),positions=[],indices=[];
+ for(const direction of [-1,1]){
+  const start=positions.length/3,steps=97;
+  for(let i=0;i<=steps;i++){
+   const x=direction*(135+i*(620-135)/steps),c=canalCenter(x),w=canalHalfWidth(x);
+   positions.push(x,-c-w,0,x,-c+w,0);
+   if(i<steps){const j=start+i*2;indices.push(...(direction>0?[j,j+2,j+1,j+1,j+2,j+3]:[j,j+1,j+2,j+1,j+3,j+2]));}
+  }
+ }
+ farGeometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));farGeometry.setIndex(indices);farGeometry.computeVertexNormals();
+ const farMaterial=new T.ShaderMaterial({vertexShader:mesh.material.vertexShader,fragmentShader:mesh.material.fragmentShader,fog:true});
+ // Share time/daylight/wakes; the outer reaches never request a reflection
+ // texture or an offscreen render, even when the main river is high quality.
+ farMaterial.uniforms={...uniforms,reflectionEnabled:{value:0}};
+ const farMesh=new T.Mesh(farGeometry,farMaterial);farMesh.name='汴河 · 延伸水道';farMesh.rotation.x=-Math.PI/2;farMesh.position.y=.04;farMesh.castShadow=false;scene.add(farMesh);
  let quality='standard',waveTime=0;
  mesh.onBeforeRender=function(renderer,world,camera){
   if(quality==='low')return;
@@ -135,5 +158,5 @@ export function createRiver(scene){
   const target=mesh.getRenderTarget();if(target.width!==resolution)target.setSize(resolution,resolution);
   uniforms.reflectionTexel.value=1/resolution;
  }
- return{mesh,material:mesh.material,update,setQuality,get time(){return waveTime;}};
+ return{mesh,farMesh,material:mesh.material,update,setQuality,get time(){return waveTime;}};
 }

@@ -11,6 +11,8 @@ import {createCloseupDetails,closeupFloor} from './closeup-details.js';
 import {createFeaturedFrontage} from './featured-frontage.js';
 import {fitCartToGround} from './cart-grounding.js';
 import {createTerrainSupport} from './terrain-support.js';
+import {createLandscape} from './landscape.js';
+import {expandedWalkBounds} from './landscape-layout.js';
 
 export const bridgeHeight=z=>.68+4.7*Math.max(0,1-(z/13.5)**2);
 export function createWorld(scene,kit){
@@ -32,7 +34,6 @@ export function createWorld(scene,kit){
  function place(name,x,z,{y=.62,yaw=0,scale=1,...data}={}){if(!placements.has(name))placements.set(name,[]);const p={x,y,z,yaw,scale,...data};placements.get(name).push(p);return p;}
  function collision(x,z,w,d){colliders.push({x,z,w,d});}
  // Dirt streets, worn local landings and earth revetments, not a paved boulevard.
- cube(m.ground,[0,-.40,0],[270,.70,170]);
  for(const side of [-1,1]){
   cube(m.ground,[0,.03,side*47],[255,1.08,73]);
   const g=new T.PlaneGeometry(228,9.6,114,12);g.rotateX(-Math.PI/2);
@@ -142,6 +143,7 @@ export function createWorld(scene,kit){
   return !colliders.some(c=>circleHitsBox(x,z,r+.035,c));
  }
  const closeups=createCloseupDetails(scene,kit,colliders);
+ const landscape=createLandscape(scene,{materials:m,colliders});
  const supportMaterials=new Set([m.ground,m.road,m.stone,m.paving]),terrainSupport=createTerrainSupport([...batches].filter(([material])=>supportMaterials.has(material)).flatMap(([,geometries])=>geometries));
  function contactFloor(x,z){const stable=floor(x,z);if(Math.abs(x)<3.2&&Math.abs(z)<13.5||closeupFloor(x,z,.62)>.62)return stable;return terrainSupport.height(x,z)??stable;}
  const crowd=createPeriodCrowd(scene,kit,persons,bridgeHeight,clearPerson,floor,contactFloor,(surface,matrix)=>terrainSupport.clearanceMesh(surface,matrix)),assetBatches=createAssetInstances(scene,kit,placements);
@@ -189,10 +191,10 @@ export function createWorld(scene,kit){
   Object.assign(kit,candidate);enhancedKinds.add(kind);
   disposeAssetScene(previous,[scene,...Object.values(kit.scenes)]);
  }
- function update(time,dt,reduced,night,camera,visitor){closeups.update(camera);lighting.update(time,dt,night,reduced,camera);for(const b of boats){b.g.position.y=.17+(reduced?0:Math.sin(time*.6+b.phase)*.025);b.g.position.x=b.moving&&!reduced?((b.x+time*.36+108)%216)-108:b.x;}river.update(dt,reduced,boats,lighting);crowd.update(time,reduced,camera,visitor);for(const f of flags)f.mesh.rotation.y=reduced?0:Math.sin(time*.7+f.x)*.025;}
- function valid(x,z){if(Math.abs(x)>104||Math.abs(z)>70)return false;if(Math.abs(z)<11.8&&Math.abs(x)>2.65)return false;return !colliders.some(c=>Math.abs(x-c.x)<c.w+.28&&Math.abs(z-c.z)<c.d+.28);}
+ function update(time,dt,reduced,night,camera,visitor){closeups.update(camera);lighting.update(time,dt,night,reduced,camera);landscape.update(lighting.dusk);for(const b of boats){b.g.position.y=.17+(reduced?0:Math.sin(time*.6+b.phase)*.025);b.g.position.x=b.moving&&!reduced?((b.x+time*.36+108)%216)-108:b.x;}river.update(dt,reduced,boats,lighting);crowd.update(time,reduced,camera,visitor);for(const f of flags)f.mesh.rotation.y=reduced?0:Math.sin(time*.7+f.x)*.025;}
+ function valid(x,z){if(Math.abs(x)>180||Math.abs(z)>104)return false;if(Math.abs(x)>104?!expandedWalkBounds(x,z):Math.abs(z)<11.8&&Math.abs(x)>2.65)return false;return !colliders.some(c=>Math.abs(x-c.x)<c.w+.28&&Math.abs(z-c.z)<c.d+.28);}
  function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:closeupFloor(x,z,.62);}
  function canWalk(x,z){return valid(x,z)&&crowd.motion.validVisitor(x,z);}
  function walkSpawn(x,z){for(let ring=0;ring<16;ring++){const n=ring?ring*8:1;for(let i=0;i<n;i++){const xx=x+Math.cos(i/n*Math.PI*2)*ring*.2,zz=z+Math.sin(i/n*Math.PI*2)*ring*.2;if(canWalk(xx,zz))return [xx,zz];}}return null;}
- return {update,valid,canWalk,walkSpawn,clearPerson,floor,contactFloor,terrainSupport,closeups,teaFrontage,grassFrontage,cartObservation,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>teaFrontage.setVisible(value,assetBatches),setGrassDetailVisible:value=>grassFrontage.setVisible(value,assetBatches),setCartDetailVisible:value=>cartObservation.setVisible(value,assetBatches),setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
+ return {landscape,update,valid,canWalk,walkSpawn,clearPerson,floor,contactFloor,terrainSupport,closeups,teaFrontage,grassFrontage,cartObservation,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>teaFrontage.setVisible(value,assetBatches),setGrassDetailVisible:value=>grassFrontage.setVisible(value,assetBatches),setCartDetailVisible:value=>cartObservation.setVisible(value,assetBatches),setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);landscape.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount+landscape.stats.buildings,coreBuildings:buildingCount,landscape:landscape.stats,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
 }
