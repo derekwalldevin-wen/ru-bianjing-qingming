@@ -16,6 +16,9 @@ body[data-mode=overview]:not([data-inspecting=true]) .location h2{writing-mode:h
 body[data-mode=overview]:not([data-inspecting=true]) .location>p:not(.eyebrow){display:block;position:static;writing-mode:horizontal-tb;height:auto;padding:0;background:transparent;font-size:11px;letter-spacing:1px;margin:0}
 body[data-mode=overview]:not([data-inspecting=true]) .location .underlined{position:static;width:auto;background:transparent;box-shadow:none;border:0;padding:6px 0 0;font-size:11px;min-height:34px}
 body.night #journey-atlas .atlas-place img{mix-blend-mode:normal}body.night .atlas-place.selected{background:#63827633}body.night[data-mode=overview]:not([data-inspecting=true]) .location{background:#163e40d9}
+@media(min-width:651px){
+ #journey-atlas{padding-top:26px;padding-bottom:20px}.atlas-heading h2{font-size:32px}.atlas-places{margin:18px 0 14px;gap:10px 22px}.atlas-place{padding-top:6px;padding-bottom:9px}.atlas-place img{height:86px}.atlas-place strong{font-size:20px;margin-top:5px}.atlas-selection{padding-top:12px}.atlas-selection h3{font-size:24px;margin-bottom:6px}.atlas-selection>p:not(.eyebrow){margin-bottom:10px}.atlas-foot{margin-top:12px}
+}
 @media(max-width:650px){
  #journey-atlas{width:94vw;padding:36px 18px 20px;max-height:92dvh}.atlas-heading h2{font-size:28px;letter-spacing:5px}.atlas-heading .eyebrow{font-size:9px;letter-spacing:3px}.atlas-heading>p:last-child{font-size:10px;letter-spacing:1px}
  .atlas-places{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin:18px 0}.atlas-place{padding:6px 4px 9px}.atlas-place img{height:84px}.atlas-place strong{font-size:20px;letter-spacing:1px}.atlas-place small{font-size:9px;letter-spacing:1px}.atlas-number{top:7px;right:6px;font-size:10px}
