@@ -1,6 +1,8 @@
 /* Original-painting chapter book: the scene is unobstructed until opened. */
 #journey-atlas{width:min(1080px,94vw);max-height:92dvh;padding:38px 50px 26px;background:var(--silk),var(--paper);overflow:auto;border:1px solid var(--gold);outline:1px solid #b7996070;outline-offset:-9px}
 #journey-atlas::backdrop{background:#123936b8;backdrop-filter:blur(6px)}
+#journey-atlas>.close{position:sticky;top:0;right:0;display:block;margin:-14px -12px -30px auto;z-index:3}
+body[data-reduced=true] #journey-atlas{animation:none!important}
 .atlas-heading{text-align:center}.atlas-heading .eyebrow{margin:0 0 8px;letter-spacing:6px;font-size:10px}.atlas-heading h2{font:36px var(--display);letter-spacing:9px;margin:0 0 8px}.atlas-heading>p:last-child{font-size:11px;letter-spacing:2px;margin:0;color:var(--faded)}
 .atlas-places{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 22px;margin:25px 0 18px}
 .atlas-place{position:relative;min-width:0;border:1px solid transparent;background:transparent;padding:10px 6px 12px;text-align:center;transition:background .2s,border-color .2s,color .2s}
