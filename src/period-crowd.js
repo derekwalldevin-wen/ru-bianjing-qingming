@@ -3,7 +3,7 @@ import {templateParts} from './period-assets.js';
 import {createCrowdMotion} from './crowd-motion.js';
 import {sampleVendorGesture,vendorGestureTarget,advanceVendorGestureWeight,VENDOR_GESTURE_RADIUS,VENDOR_GESTURE_SOURCE_SHA256} from './vendor-gesture.js';
 import {createVendorGestureRig,vendorJoint} from './vendor-gesture-rig.js';
-import {chooseVendorGestureActor} from './vendor-gesture-actor.js';
+import {chooseVendorGestureActor} from './vendor-gesture-actor.js?v=original-scroll-v1';
 
 export function createPeriodCrowd(scene,kit,people,bridgeHeight,clear,floor,contactFloor=floor,footClearance=null){
  const groups=[],transform=new T.Object3D(),matrix=new T.Matrix4(),swing=new T.Matrix4(),v=new T.Vector3(),supportCache=new Map();

@@ -1,8 +1,10 @@
 import * as T from 'three';
 import {mergeGeometries} from '../vendor/BufferGeometryUtils.js';
 import {projectSurfaceUV} from './surface-textures.js';
-import {canalCenter,canalHalfWidth,bankHeight,landscapeBounds} from './landscape-layout.js';
-import {installLandscapeInk} from './ink-landscape.js?v=ink-landscape-v3';
+import {canalCenter,canalHalfWidth,bankHeight,landscapeBounds} from './landscape-layout.js?v=original-scroll-v1';
+import {buildPaintedGate} from './painted-gate.js?v=original-scroll-v1';
+import {paintedGate,streetRoute,ruralRoute} from './painting-layout.js?v=original-scroll-v1';
+import {installLandscapeInk} from './ink-landscape.js?v=original-scroll-v1';
 
 // Low-cost actual 3D city and mineral-colour mountains. No bitmap backdrop,
 // no new GLB, and no second water reflection pass.
@@ -35,7 +37,7 @@ export function createLandscape(scene,{materials,colliders}){
   const rows=[[],[],[]],steps=Math.ceil((to-from)/5);for(let i=0;i<=steps;i++){
    const x=from+(to-from)*i/steps,center=canalCenter(x),width=canalHalfWidth(x);
    const inner=inside?side*83.48:center+side*(width+.36),outer=center+side*(290+32*Math.sin(x*.009+side));
-   const y=inside?.57:.62,join=inside?side*87:center+side*(width+4),plateau=center+side*130;
+   const y=inside?.57:.62,join=inside?side*87:center+side*(width+4),plateau=center+side*220;
    const points=[[x,y,inner],[x,.62,join],[x,.62,plateau],[x,.2,outer]];
    for(let j=0;j<3;j++)rows[j].push(side>0?[points[j],points[j+1]]:[points[j+1],points[j]]);
   }for(const band of rows)strip(band,'ground','#9c9871',`bank/${side}`);
@@ -55,32 +57,22 @@ export function createLandscape(scene,{materials,colliders}){
  for(let j=0;j<4;j++)roofIndices.push(j,j+1,j+5,j+1,j+6,j+5);
  roofIndices.push(0,1,2,0,2,3,0,3,4,5,7,6,5,8,7,5,9,8,0,5,4,4,5,9);
  const roof=new T.BufferGeometry();roof.setAttribute('position',new T.Float32BufferAttribute(roofPositions,3));roof.setIndex(roofIndices);roof.computeVertexNormals();
- const buildings=[];const occupied=[...colliders];
- function house(x,z,w,d,h,far=false){
-  // Keep the existing low-height footprints, all six viewpoints, roads and
-  // gate passage. Houses close to the visitor receive real collision boxes.
-  const margin=far?.7:1.1;
-  if(occupied.some(c=>Math.abs(x-c.x)<w*.59+c.w+margin&&Math.abs(z-c.z)<d*.59+c.d+margin))return false;
-  if(Math.abs(z-canalCenter(x))<canalHalfWidth(x)+d*.6+9)return false;
-  if(Math.abs(x-88)<13&&z<-28&&z>-59)return false;
-  const y=bankHeight(x,z),shade=Math.floor(rnd()*3),category=far?'hamlet':'town';
-  cube('wall',[x,y+h/2,z],[w,h,d],0,palettes.wall[shade],category);
-  add(roof,'roof',[x,y+h,z],[w,d*.60,d],0,palettes.roof[shade],category);
-  const front=z>canalCenter(x)?-1:1,face=z+front*(d/2+.035);
-  cube('wood',[x,y+h*.87,face],[w+.08,.12,.12],0,palettes.wood[0],category);
-  for(const dx of [-w*.42,0,w*.42])cube('wood',[x+dx,y+h*.45,face],[.13,h*.90,.13],0,palettes.wood[0],category);
-  for(const dx of [-w*.24,w*.24]){cube('wood',[x+dx,y+h*.45,face+.045*front],[w*.19,h*.30,.065],0,'#3f5149',category);if(!far){for(const dy of [-.16,.16])cube('wood',[x+dx,y+h*.45+dy,face+.082*front],[w*.19,.045,.035],0,'#ac9873',category);}}
-  // Visible footing exactly on the local ground, with an earth apron.
-  cube('ground',[x,y+.045,z],[w+.32,.09,d+.28],0,'#afa27f',category);
-  const footprint={x,z,w:w*.60,d:d*.60};occupied.push(footprint);colliders.push(footprint);
-  buildings.push({x,z,w,d,h,far,ground:y});return true;
+ const buildings=[],occupied=[...colliders];
+ const gateReport=buildPaintedGate({add,cube,colliders,gate:paintedGate});
+ // Streets follow the long scroll's narrative axis instead of parallel lots.
+ for(const [id,route]of [['city',streetRoute],['rural',ruralRoute]]){
+  const rows=[];
+  for(let i=1;i<route.length;i++){
+   const [ax,az]=route[i-1],[bx,bz]=route[i],length=Math.hypot(bx-ax,bz-az),nx=-(bz-az)/length,nz=(bx-ax)/length;
+   const steps=Math.ceil(length/3),width=id==='city'?5.3:2.6;
+   for(let k=i===1?0:1;k<=steps;k++){const t=k/steps,extra=i===1&&k===0?-.15:i===route.length-1&&k===steps?.15:0,x=ax+(bx-ax)*t+(bx-ax)/length*extra,z=az+(bz-az)*t+(bz-az)/length*extra;rows.push([[x-nx*width,.624,z-nz*width],[x+nx*width,.624,z+nz*width]]);}
+  }
+  strip(rows,'ground',id==='city'?'#b5a17c':'#a89c79',`street/${id}`);
  }
- for(const side of [-1,1])for(let row=0;row<6;row++)for(let i=0;i<27;i++){
-  if(i%9===4)continue;const x=-173+i*13.1+(row%2)*3+(rnd()-.5)*1.1,z=side*(34+row*12.7+(rnd()-.5)*1.8)+canalCenter(x);
-  const h=2.5+rnd()*1.25+(i%8===0?1.5:0);house(x,z,6.7+rnd()*2.3,5.2+rnd()*1.4,h);
- }
- for(const direction of [-1,1])for(const side of [-1,1])for(let row=0;row<3;row++)for(let i=0;i<12;i++){
-  const x=direction*(198+i*14.5+(row%2)*4),z=canalCenter(x)+side*(25+row*15+(rnd()-.5)*3);if((i+row)%8===3)continue;house(x,z,6+rnd()*2,5.2+rnd(),2.5+rnd()*1.3,true);
+ // Rural reed fences and small gardens respect the open space around cottages.
+ for(const [x,z,w,d]of [[-256,58,18,9],[-246,62,12,8]]){
+  for(let i=0;i<=w;i++){cube('wood',[x-w/2+i,.99,z+d/2],[.07,.74,.07],0,'#796a47','rural-detail');}
+  for(const y of [.78,1.12])cube('wood',[x,y,z+d/2],[w,.05,.07],0,'#958463','rural-detail');
  }
  // Broken copses and fields dissolve the city into countryside.
  for(let i=0;i<125;i++){
@@ -109,7 +101,7 @@ export function createLandscape(scene,{materials,colliders}){
  for(let layer=0;layer<3;layer++){
   const material=installLandscapeInk(new T.MeshStandardMaterial({vertexColors:true,roughness:1,fog:false}),{layer});mountainMaterials.push(material);inkMaterials.push(material);
   const day=new T.Color(['#467d71','#53918e','#79a6a1'][layer]),foot=new T.Color(['#8d9b6c','#9fae88','#b4bfb0'][layer]);
-  const radius=[345,590,900][layer],count=[25,29,33][layer],geometries=[];
+  const radius=[560,850,1150][layer],count=[25,29,33][layer],geometries=[];
   for(let i=0;i<count;i++){
    const angle=i/count*Math.PI*2,alongRiver=Math.abs(Math.sin(angle))<.20;
    const r=radius+(rnd()-.5)*70,x=Math.cos(angle)*r,z=Math.sin(angle)*r*.77;
@@ -132,10 +124,10 @@ export function createLandscape(scene,{materials,colliders}){
  }
  let drawables=3,triangles=mountainTriangles;
  for(const {key,category,parts}of buckets.values()){
-  const geometry=mergeGeometries(parts);parts.forEach(g=>g.dispose());let material=mats[key];if(category==='grove'&&key==='grass'){material=installLandscapeInk(material.clone(),{foliage:true});inkMaterials.push(material);}const mesh=new T.Mesh(geometry,material);mesh.name=`长卷/${category}/${key}`;mesh.castShadow=category==='town';mesh.receiveShadow=true;root.add(mesh);drawables++;triangles+=geometry.attributes.position.count/3;
+  const geometry=mergeGeometries(parts);parts.forEach(g=>g.dispose());let material=mats[key];if(category==='grove'&&key==='grass'){material=installLandscapeInk(material.clone(),{foliage:true});inkMaterials.push(material);}const mesh=new T.Mesh(geometry,material);mesh.name=`长卷/${category}/${key}`;mesh.castShadow=category==='town'||category==='gate';mesh.receiveShadow=true;root.add(mesh);drawables++;triangles+=geometry.attributes.position.count/3;
  }
  box.dispose();leaf.dispose();twig.dispose();roof.dispose();buckets.clear();
- function setQuality(value){root.traverse(o=>{if(!o.isMesh)return;o.castShadow=value!=='low'&&o.name.startsWith('长卷/town/');});for(const m of inkMaterials){m.userData.inkDetail=value==='low'?0:1;if(m.userData.shader)m.userData.shader.uniforms.inkDetail.value=m.userData.inkDetail;}}
+ function setQuality(value){root.traverse(o=>{if(!o.isMesh)return;o.castShadow=value!=='low'&&(o.name.startsWith('长卷/town/')||o.name.startsWith('长卷/gate/'));});for(const m of inkMaterials){m.userData.inkDetail=value==='low'?0:1;if(m.userData.shader)m.userData.shader.uniforms.inkDetail.value=m.userData.inkDetail;}}
  function update(night){for(const material of inkMaterials)if(material.userData.shader)material.userData.shader.uniforms.landscapeNight.value=night;}
- return{root,buildings,update,setQuality,inkMaterials,bounds:landscapeBounds,stats:{buildings:buildings.length,nearBuildings:buildings.filter(b=>!b.far).length,farBuildings:buildings.filter(b=>b.far).length,drawables,triangles,modelBytes:0,mountainLayers:3,canalLength:1240,artStyle:'淡青绿彩墨',inkMaterials:inkMaterials.length}};
+ return{root,buildings,gateReport,update,setQuality,inkMaterials,bounds:landscapeBounds,stats:{buildings:buildings.length,nearBuildings:buildings.filter(b=>!b.far).length,farBuildings:buildings.filter(b=>b.far).length,drawables,triangles,modelBytes:0,mountainLayers:3,canalLength:1240,artStyle:'淡青绿彩墨',inkMaterials:inkMaterials.length}};
 }

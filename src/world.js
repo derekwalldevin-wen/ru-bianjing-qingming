@@ -1,18 +1,19 @@
 import * as T from 'three';
 import {mergeGeometries} from '../vendor/BufferGeometryUtils.js';
-import {createLighting} from './lighting.js';
-import {createRiver} from './river.js';
+import {createLighting} from './lighting.js?v=original-scroll-v1';
+import {createRiver} from './river.js?v=original-scroll-v1';
 import {applySurfaceTextures,projectSurfaceUV} from './surface-textures.js';
-import {createDetailBuilder} from './details.js';
+import {createDetailBuilder} from './details.js?v=original-scroll-v1';
 import {createAssetInstances,createAssetObject,prepareAssetKit,disposeAssetScene,replaceObjectVisual} from './period-assets.js';
-import {createPeriodCrowd} from './period-crowd.js';
+import {createPeriodCrowd} from './period-crowd.js?v=original-scroll-v1';
 import {circleHitsBox} from './crowd-motion.js';
-import {createCloseupDetails,closeupFloor} from './closeup-details.js';
+import {createCloseupDetails,closeupFloor} from './closeup-details.js?v=original-scroll-v1';
 import {createFeaturedFrontage} from './featured-frontage.js';
-import {fitCartToGround} from './cart-grounding.js';
-import {createTerrainSupport} from './terrain-support.js';
-import {createLandscape} from './landscape.js?v=ink-landscape-v3';
-import {expandedWalkBounds} from './landscape-layout.js';
+import {fitCartToGround} from './cart-grounding.js?v=original-scroll-v1';
+import {createTerrainSupport} from './terrain-support.js?v=original-scroll-v1';
+import {createLandscape} from './landscape.js?v=original-scroll-v1';
+import {expandedWalkBounds,bankHeight,canalCenter,canalHalfWidth} from './landscape-layout.js?v=original-scroll-v1';
+import {visibleRoofPlan,heroFrames,reframe,distanceToRoute,streetRoute,paintedGate} from './painting-layout.js?v=original-scroll-v1';
 
 export const bridgeHeight=z=>.68+4.7*Math.max(0,1-(z/13.5)**2);
 export function createWorld(scene,kit){
@@ -62,19 +63,46 @@ export function createWorld(scene,kit){
   for(let j=0;j<4;j++)for(let i=0;i<4;i++){const a=j*5+i;indices.push(a,a+5,a+6,a,a+6,a+1);}
   const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();add(geometry,m.road,[0,0,0]);geometry.dispose();
  }
- function house(name,x,z,scale=1){place(name,x,z,{yaw:z>0?Math.PI:0,scale});const [w,d]=dimensions[name],halfWidth=w*scale/2+.15,halfDepth=d*scale/2+.15;collision(x,z,halfWidth,halfDepth);houseGround(x,z,halfWidth,halfDepth);buildingCount++;}
- // Reference-based frontages, staggered side lanes and courtyards.
- house('building_workshop',23,25,1.17);house('building_tea',-29,-26,1);house('building_thatch',-66,-25,1.04);
- for(const side of [-1,1]){
-  const front=[-98,-84,-52,-39,-12,11,40,54,68,82,98];
-  for(let i=0;i<front.length;i++){const x=front[i]+(rnd()-.5)*1.6;if((side===1&&Math.abs(x-23)<13)||(side===-1&&(Math.abs(x+29)<12||Math.abs(x+66)<13)))continue;house(x<-58?'building_thatch':i%4===1?'building_workshop':'building_shop',x,side*(24.8+rnd()*1.8),.87+rnd()*.22);}
-  for(let row=0;row<2;row++)for(let i=0;i<13;i++){
-   if((i+row)%7===3)continue;const x=-100+i*16+(row%2)*4+(rnd()-.5)*4;if(x>75&&side<0)continue;
-   house(x<-60?'building_thatch':(i+row)%6===0?'building_tea':i%3===0?'building_workshop':'building_shop',x,side*(37+row*14+rnd()*2),.9+rnd()*.2);
-   if(i%3===0){const z=side*(33+row*14);cube(m.wall,[x+6,1.28,z],[.3,1.3,6]);cube(m.dark,[x+6,1.98,z],[.4,.11,6.2]);collision(x+6,z,.2,3.1);}
+ const referencePlacements=[];
+ function house(name,x,z,scale=1,yaw=z>0?Math.PI:0,reference={}){
+  const [w,d]=dimensions[name],halfWidth=w*scale/2+.15,halfDepth=d*scale/2+.15;
+  let resolved=z,depthAdjustment=0;
+  // A painting has overlapping projections; preserve longitudinal anchors and
+  // resolve physical lot depth for a walkable 3D volume. Record every change.
+  const city=x>70,roadZ=city?(x<180?17+(x-42)*.17:40+Math.min(6,Math.max(0,(x-220)*.17))):Math.sign(z)*16.7;
+  const direction=z>=roadZ?1:-1;
+  if(!reference.hero){
+   let found=false;
+   for(let ring=0;ring<160&&!found;ring++)for(const sign of ring?[direction,-direction]:[direction]){
+    const candidate=z+ring*.5*sign;
+    const riverClear=Math.abs(candidate-canalCenter(x))>=canalHalfWidth(x)+halfDepth+1.5;
+    const passage=city&&Math.abs(candidate-roadZ)<halfDepth+5.3;
+    const overlap=colliders.some(c=>Math.abs(x-c.x)<halfWidth+c.w+.1&&Math.abs(candidate-c.z)<halfDepth+c.d+.1);
+    if(riverClear&&!passage&&!overlap){resolved=candidate;depthAdjustment=candidate-z;found=true;break;}
+   }
+   if(!found)throw new Error('原画建筑无法获得可行的三维进深: '+reference.id);
   }
+  if(reference.hero){resolved=z;depthAdjustment=z-visibleRoofPlan.find(p=>p.id===reference.id).z;}
+  const item=place(name,x,resolved,{y:.62,yaw,scale,...reference});collision(x,resolved,halfWidth,halfDepth);
+  if(Math.abs(x)<127.5&&Math.abs(resolved)<83)houseGround(x,resolved,halfWidth,halfDepth);
+  buildingCount++;referencePlacements.push({...reference,x,z:resolved,yaw,scale,depthAdjustment});return item;
  }
- place('building_gate',88,-43,{yaw:Math.PI/2});collision(88,-48,4,2);collision(88,-38,4,2);houseGround(88,-48,4,2);houseGround(88,-38,4,2);buildingCount++;
+ // The four featured models follow the full scroll rather than the old sandbox.
+ for(const [key,name,scale]of [['tea','building_workshop',1.17],['market','building_tea',1],['grass','building_thatch',1.04]]){
+  const frame=heroFrames[key],fromYaw=frame.from[1]>0?Math.PI:0;
+  house(name,...frame.to,scale,fromYaw+frame.turn,{hero:true,id:frame.source,evidence:'original-visible',referenceModel:key,source:visibleRoofPlan.find(p=>p.id===frame.source).source,reference:visibleRoofPlan.find(p=>p.id===frame.source).reference,nativeAnchor:visibleRoofPlan.find(p=>p.id===frame.source).nativeAnchor});
+ }
+ // Gate walls are reserved before buildings are placed. Actual masonry is
+ // constructed by the landscape builder with identical rectangular occupancy.
+ for(const dz of [-8.6,8.6])collision(paintedGate.x,paintedGate.z+dz,9,5.5);
+ for(const dz of [-26,26])collision(paintedGate.x,paintedGate.z+dz,2.25,12);
+ collision(183,50.5,9.6,1.35);
+ for(const [i,p]of visibleRoofPlan.entries()){
+  if(p.hero)continue;
+  const name=p.type==='thatch'?'building_thatch':p.type==='hall'?'building_tea':i%4===0?'building_workshop':'building_shop';
+  const scale=Math.max(.58,Math.min(1.4,p.w/dimensions[name][0]));
+  house(name,p.x,p.z,scale,p.yaw+(p.z>(p.x>70?40:Math.sign(p.z)*16.7)?Math.PI:0),{id:p.id,source:p.source,reference:p.reference,nativeAnchor:p.nativeAnchor,evidence:p.evidence});
+ }
  const bridgeObject=createAssetObject(kit,'bridge');scene.add(bridgeObject);
  // Bridge-end bird standards are visible in the painting; function is debated.
  for(const side of [-1,1])for(const x of [-4.35,4.35]){const z=side*12.6;post(m.pale,[x,4.65,z],.095,8.1);beam([x-1,7.4,z],[x+1,7.4,z],.08);beam([x,7.7,z-.5],[x,7.7,z+.5],.065);add(orb,m.pale,[x,8.83,z],[.24,.11,.10]);beam([x+.15,8.85,z],[x+.2,9.1,z],.045,m.pale);beam([x+.18,9.1,z],[x+.38,9.08,z],.035,m.dark);}
@@ -107,11 +135,11 @@ export function createWorld(scene,kit){
  function sign(x,z,text){
   const canvas=document.createElement('canvas');canvas.width=128;canvas.height=256;const ctx=canvas.getContext('2d');ctx.fillStyle='#bca783';ctx.fillRect(0,0,128,256);ctx.strokeStyle='#5e4733';ctx.lineWidth=5;ctx.strokeRect(7,7,114,242);ctx.fillStyle='#322c24';ctx.font='44px SimSun';ctx.textAlign='center';[...text].forEach((c,i)=>ctx.fillText(c,64,73+i*63));const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;const mesh=new T.Mesh(new T.PlaneGeometry(.7,1.4),new T.MeshStandardMaterial({map:texture,roughness:1,side:T.DoubleSide}));mesh.position.set(x,3.2,z);scene.add(mesh);flags.push({mesh,x});post(m.dark,[x-.48,2.7,z],.055,4.4);beam([x-.48,4.12,z],[x+.4,4.12,z],.06);
  }
- sign(25,20.5,'茶');sign(-26,-20,'酒');sign(55,-20.5,'布帛');sign(-64,-20.5,'食');
- for(const [x,z] of [[25,20.5],[-26,-20],[55,-20.5],[-64,-20.5]])collision(x-.48,z,.08,.08);
+ for(const [key,point,text]of [['tea',[25,0,20.5],'茶'],['market',[-26,0,-20],'酒'],['carts',[55,0,-20.5],'布帛'],['grass',[-64,0,-20.5],'食']]){const p=reframe(point,key);sign(p[0],p[2],text);}
+ for(const [x,z] of [heroFrames.tea.to,heroFrames.market.to,heroFrames.carts.to,heroFrames.grass.to])collision(x-.48,z,.08,.08);
  [[-51,12.3],[-12,-12.8],[39,12.4],[74,-12.5],[-84,12.7],[13,35],[-49,-36],[5,54],[-70,37],[50,-37]].forEach(([x,z],i)=>place(i%3===0?'tree_bare':'tree_willow',x,z,{scale:.82+rnd()*.27,yaw:rnd()*6.28}));
- for(const side of [-1,1])for(let i=0;i<24;i++)place(i%3===0?'tree_bare':'tree_willow',-118+i*10+rnd()*3,side*(66+rnd()*9),{scale:.78+rnd()*.35,yaw:rnd()*6.28});
- place('cart_ox',59,-16.3,{yaw:Math.PI/2});collision(59,-16.3,3.2,1.12);place('cart_hand',-57,18.3,{yaw:-Math.PI/2});collision(-57,18.3,1.8,.85);place('cart_hand',-35,-18.4,{yaw:Math.PI/2,scale:.9});collision(-35,-18.4,1.6,.8);place('cart_ox',77,18.4,{yaw:-Math.PI/2,scale:.92});collision(77,18.4,3,1.1);
+ for(const [i,[x,z]]of [[-275,52],[-266,49],[-259,48],[-248,58],[-233,51],[-225,42],[-214,39],[-197,52],[-181,56],[-161,43],[-143,49],[185,14],[189,6],[194,-4],[211,15],[216,19],[220,26],[225,63],[233,68],[244,82],[275,79],[305,75]].entries())place('tree_bare',x,z,{scale:1.1+(i%3)*.18,yaw:rnd()*6.28});
+ place('cart_ox',...heroFrames.carts.to,{yaw:Math.PI/2});collision(...heroFrames.carts.to,3.2,1.12);place('cart_hand',-57,18.3,{yaw:-Math.PI/2});collision(-57,18.3,1.8,.85);place('cart_hand',-35,-18.4,{yaw:Math.PI/2,scale:.9});collision(-35,-18.4,1.6,.8);place('cart_ox',77,18.4,{yaw:-Math.PI/2,scale:.92});collision(77,18.4,3,1.1);
  const river=createRiver(scene);
  function boat(name,x,z,size,moving=false){const g=createAssetObject(kit,name);g.position.set(x,.17,z);g.scale.setScalar(size);scene.add(g);const worker=createAssetObject(kit,'person_boatman');worker.position.set(name==='boat_cargo'?3.6:2.1,.75,.15);worker.rotation.y=Math.PI/2;g.add(worker);boats.push({g,worker,name,x,z,moving,phase:rnd()*6});}
  boat('boat_cargo',-38,4.8,1);boat('boat_cargo',42,4.8,.92);boat('boat_cargo',-23,-5.8,1.06);boat('boat_cargo',8,-1.8,.96,true);boat('boat_skiff',72,1.9,1,true);
@@ -137,19 +165,23 @@ export function createWorld(scene,kit){
    if(!bounds.isEmpty())collision((bounds.min.x+bounds.max.x)/2,(bounds.min.z+bounds.max.z)/2,(bounds.max.x-bounds.min.x)/2+.03,(bounds.max.z-bounds.min.z)/2+.03);
   }
  }
+ for(const p of persons){if(!p.bridge&&p.z<0&&p.activity==='walk'){p.x=260+p.x*.4;p.z=46+(Math.abs(p.z)-14.2);p.start=223;p.end=299;p.offset=p.x-p.start;p.streetZone='city';}else if(!p.bridge&&p.activity==='stand'&&p.x>-70&&p.x<50&&p.z<-17){const q=reframe([p.x,0,p.z],'market');p.x=q[0];p.z=q[2];p.yaw+=heroFrames.market.turn;p.streetZone='city';}}
  function clearPerson(x,z,r,p){
+  if(p.streetZone==='city'&&p.activity!=='walk')return valid(x,z)&&!colliders.some(c=>circleHitsBox(x,z,r+.035,c));
+  if(p.streetZone==='city')return x>219+r&&x<305-r&&Math.abs(z-46)<6-r&&!colliders.some(c=>circleHitsBox(x,z,r+.035,c));
   if(p.bridge){if(Math.abs(x)+r>2.91||Math.abs(z)>11.5)return false;}
   else{const bank=z*Math.sign(p.z);if(Math.abs(x)+r>103||bank<11.9+r||bank>21.4-r)return false;}
   return !colliders.some(c=>circleHitsBox(x,z,r+.035,c));
  }
  const closeups=createCloseupDetails(scene,kit,colliders);
  const landscape=createLandscape(scene,{materials:m,colliders});
- const supportMaterials=new Set([m.ground,m.road,m.stone,m.paving]),terrainSupport=createTerrainSupport([...batches].filter(([material])=>supportMaterials.has(material)).flatMap(([,geometries])=>geometries));
+ const landscapeSupport=[];landscape.root.traverse(o=>{if(o.isMesh&&o.name.endsWith('/ground'))landscapeSupport.push(o.geometry);});
+ const supportMaterials=new Set([m.ground,m.road,m.stone,m.paving]),terrainSupport=createTerrainSupport([...batches].filter(([material])=>supportMaterials.has(material)).flatMap(([,geometries])=>geometries).concat(landscapeSupport),4,{minX:-350,maxX:350,minZ:-155,maxZ:155});
  function contactFloor(x,z){const stable=floor(x,z);if(Math.abs(x)<3.2&&Math.abs(z)<13.5||closeupFloor(x,z,.62)>.62)return stable;return terrainSupport.height(x,z)??stable;}
  const crowd=createPeriodCrowd(scene,kit,persons,bridgeHeight,clearPerson,floor,contactFloor,(surface,matrix)=>terrainSupport.clearanceMesh(surface,matrix)),assetBatches=createAssetInstances(scene,kit,placements);
- const teaFrontage=createFeaturedFrontage(scene,placements);
- const grassFrontage=createFeaturedFrontage(scene,placements,{template:'building_thatch',anchor:[-66,-25],detail:'detail_grass_frontage'});
- const cartObservation=createFeaturedFrontage(scene,placements,{template:'cart_ox',anchor:[59,-16.3],detail:'detail_ox_cart',verticalOffset:-.007,prepare:group=>fitCartToGround(group,scene)});
+ const teaFrontage=createFeaturedFrontage(scene,placements,{anchor:heroFrames.tea.to});
+ const grassFrontage=createFeaturedFrontage(scene,placements,{template:'building_thatch',anchor:heroFrames.grass.to,detail:'detail_grass_frontage'});
+ const cartObservation=createFeaturedFrontage(scene,placements,{template:'cart_ox',anchor:heroFrames.carts.to,detail:'detail_ox_cart',verticalOffset:-.007,prepare:group=>fitCartToGround(group,scene)});
  for(const [material,geometries] of batches){const mesh=new T.Mesh(mergeGeometries(geometries),material);mesh.name='街巷/岸坡与细部';mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);geometries.forEach(g=>g.dispose());}batches.clear();
  const lighting=createLighting(scene,m,river.material,lanternLocations);
  const enhancedKinds=new Set();let assetQuality='standard',anisotropy=4,boatDetailVisible=false;
@@ -192,9 +224,9 @@ export function createWorld(scene,kit){
   disposeAssetScene(previous,[scene,...Object.values(kit.scenes)]);
  }
  function update(time,dt,reduced,night,camera,visitor){closeups.update(camera);lighting.update(time,dt,night,reduced,camera);landscape.update(lighting.dusk);for(const b of boats){b.g.position.y=.17+(reduced?0:Math.sin(time*.6+b.phase)*.025);b.g.position.x=b.moving&&!reduced?((b.x+time*.36+108)%216)-108:b.x;}river.update(dt,reduced,boats,lighting);crowd.update(time,reduced,camera,visitor);for(const f of flags)f.mesh.rotation.y=reduced?0:Math.sin(time*.7+f.x)*.025;}
- function valid(x,z){if(Math.abs(x)>180||Math.abs(z)>104)return false;if(Math.abs(x)>104?!expandedWalkBounds(x,z):Math.abs(z)<11.8&&Math.abs(x)>2.65)return false;return !colliders.some(c=>Math.abs(x-c.x)<c.w+.28&&Math.abs(z-c.z)<c.d+.28);}
- function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:closeupFloor(x,z,.62);}
+ function valid(x,z){if(Math.abs(x)>345||Math.abs(z)>150)return false;if(Math.abs(x)>104?!expandedWalkBounds(x,z):Math.abs(z)<11.8&&Math.abs(x)>2.65)return false;return !colliders.some(c=>Math.abs(x-c.x)<c.w+.28&&Math.abs(z-c.z)<c.d+.28);}
+ function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:closeupFloor(x,z,Math.abs(x)>104?(terrainSupport.height(x,z)??.62):.62);}
  function canWalk(x,z){return valid(x,z)&&crowd.motion.validVisitor(x,z);}
  function walkSpawn(x,z){for(let ring=0;ring<16;ring++){const n=ring?ring*8:1;for(let i=0;i<n;i++){const xx=x+Math.cos(i/n*Math.PI*2)*ring*.2,zz=z+Math.sin(i/n*Math.PI*2)*ring*.2;if(canWalk(xx,zz))return [xx,zz];}}return null;}
- return {landscape,update,valid,canWalk,walkSpawn,clearPerson,floor,contactFloor,terrainSupport,closeups,teaFrontage,grassFrontage,cartObservation,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>teaFrontage.setVisible(value,assetBatches),setGrassDetailVisible:value=>grassFrontage.setVisible(value,assetBatches),setCartDetailVisible:value=>cartObservation.setVisible(value,assetBatches),setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);landscape.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount+landscape.stats.buildings,coreBuildings:buildingCount,landscape:landscape.stats,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
+ return {referencePlacements,landscape,update,valid,canWalk,walkSpawn,clearPerson,floor,contactFloor,terrainSupport,closeups,teaFrontage,grassFrontage,cartObservation,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>teaFrontage.setVisible(value,assetBatches),setGrassDetailVisible:value=>grassFrontage.setVisible(value,assetBatches),setCartDetailVisible:value=>cartObservation.setVisible(value,assetBatches),setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);landscape.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount+landscape.stats.buildings+1,coreBuildings:buildingCount,landscape:landscape.stats,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
 }

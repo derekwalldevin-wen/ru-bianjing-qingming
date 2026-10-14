@@ -16,7 +16,7 @@ export function createLighting(scene,materials,water,lanterns){
  function update(time,dt,night,reduced,camera){
   dusk=T.MathUtils.damp(dusk,night?1:0,3,dt);
   const angle=-.72+settings.azimuth*Math.PI/180,elevation=T.MathUtils.lerp(.86,.22,dusk);
-  if(camera){camera.getWorldDirection(direction);focus.copy(camera.position).addScaledVector(direction,camera.position.y<10?13:22);focus.x=T.MathUtils.clamp(focus.x,-100,100);focus.z=T.MathUtils.clamp(focus.z,-58,58);focus.y=0;}else focus.set(0,0,0);
+  if(camera){camera.getWorldDirection(direction);focus.copy(camera.position).addScaledVector(direction,camera.position.y<10?13:22);focus.x=T.MathUtils.clamp(focus.x,-338,338);focus.z=T.MathUtils.clamp(focus.z,-146,146);focus.y=0;}else focus.set(0,0,0);
   sun.target.position.copy(focus);sun.position.copy(focus).add(new T.Vector3(Math.sin(angle)*Math.cos(elevation),Math.sin(elevation),Math.cos(angle)*Math.cos(elevation)).multiplyScalar(110));
   const extent=camera&&camera.position.y<10?27:68;if(sun.shadow.camera.right!==extent){Object.assign(sun.shadow.camera,{left:-extent,right:extent,top:extent,bottom:-extent});sun.shadow.camera.updateProjectionMatrix();}
   sun.intensity=T.MathUtils.lerp(3.8,.48,dusk)*settings.sun;sun.color.setRGB(1,T.MathUtils.lerp(.91,.61,dusk),T.MathUtils.lerp(.76,.32,dusk));sky.intensity=T.MathUtils.lerp(1.35,.68,dusk);bounce.intensity=T.MathUtils.lerp(.36,.16,dusk);

@@ -79,3 +79,5 @@ body[data-mode=walk] #asset-detail-status{left:180px;bottom:28px}
 .scene-ui:has(#object-card:not(.hidden)) .nearby-open{visibility:hidden}
 @media(min-width:651px) and (max-height:700px){.merchant-open{top:auto;bottom:196px;right:230px}}
 @media(max-width:650px){.merchant-open{top:384px}}
+
+#archive[data-original-only="true"] .image-label.right,#archive[data-original-only="true"] .image-help{display:none}

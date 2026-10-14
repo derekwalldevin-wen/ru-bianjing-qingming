@@ -1,13 +1,13 @@
 // Exact, world-space upward triangles from the displayed ground batches.
 // A small spatial index avoids scene-wide raycasting for every walking foot.
-export function createTerrainSupport(geometries,cellSize=4){
+export function createTerrainSupport(geometries,cellSize=4,bounds=null){
  const triangles=[],cells=new Map();let references=0;
  for(const geometry of geometries){const p=geometry.attributes.position,index=geometry.index,count=index?index.count:p.count;
   for(let i=0;i<count;i+=3){const a=index?index.getX(i):i,b=index?index.getX(i+1):i+1,c=index?index.getX(i+2):i+2;
    const ax=p.getX(a),ay=p.getY(a),az=p.getZ(a),bx=p.getX(b),by=p.getY(b),bz=p.getZ(b),cx=p.getX(c),cy=p.getY(c),cz=p.getZ(c),dx=bx-ax,dz=bz-az,ex=cx-ax,ez=cz-az,det=dx*ez-dz*ex;
    if(det>=-1e-10)continue;const id=triangles.length,minX=Math.min(ax,bx,cx),maxX=Math.max(ax,bx,cx),minZ=Math.min(az,bz,cz),maxZ=Math.max(az,bz,cz);
    triangles.push([ax,ay,az,bx,by,bz,cx,cy,cz,dx,dz,ex,ez,1/det,minX,maxX,minZ,maxZ]);
-   for(let x=Math.floor(minX/cellSize);x<=Math.floor(maxX/cellSize);x++)for(let z=Math.floor(minZ/cellSize);z<=Math.floor(maxZ/cellSize);z++){const key=x+','+z;if(!cells.has(key))cells.set(key,[]);cells.get(key).push(id);references++;}
+   for(let x=Math.floor(Math.max(minX,bounds?.minX??-Infinity)/cellSize);x<=Math.floor(Math.min(maxX,bounds?.maxX??Infinity)/cellSize);x++)for(let z=Math.floor(Math.max(minZ,bounds?.minZ??-Infinity)/cellSize);z<=Math.floor(Math.min(maxZ,bounds?.maxZ??Infinity)/cellSize);z++){const key=x+','+z;if(!cells.has(key))cells.set(key,[]);cells.get(key).push(id);references++;}
   }
  }
  const data=new Float64Array(triangles.flat()),STRIDE=18,EPS=1e-8;

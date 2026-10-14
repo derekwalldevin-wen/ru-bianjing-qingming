@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {Reflector} from '../vendor/Reflector.js';
-import {canalCenter,canalHalfWidth} from './landscape-layout.js';
+import {canalCenter,canalHalfWidth} from './landscape-layout.js?v=original-scroll-v1';
 
 const canalFunctions=/* glsl */`
  float canalOffset(float x){float t=max(0.0,abs(x)-135.0);return sign(x)*(t*t/(t+180.0)*.39+sin(t/130.0)*t/(t+90.0)*26.0);}

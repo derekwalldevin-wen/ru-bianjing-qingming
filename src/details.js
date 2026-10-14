@@ -1,3 +1,4 @@
+import {reframe} from './painting-layout.js?v=original-scroll-v1';
 import * as T from 'three';
 import {projectSurfaceUV} from './surface-textures.js';
 
@@ -37,7 +38,7 @@ export function createDetailBuilder({add,cube,post,beam,m}){
   for(const x of [-2.8,2.8])for(let z=-13;z<13;z+=.8)add(cylinder,m.metal,[x,height(z)+.10,z],[.045,.025,.045]);
   for(const sign of [-1,1]){for(let x=-2.5;x<3;x+=1)post(m.stone,[x,.82,sign*14],.13,.35);for(let z=-11;z<11;z+=2.2)beam([-2.4,height(z)-.78,z],[2.4,height(z)-.78,z+1.6],.18,m.wood);}
  }
- function lanterns(){const locations=[[-4.5,3.3,13.5],[4.5,3.3,-13.5],[20,3.2,19],[26,3.2,19],[-25,3.2,-19.6],[55,3.2,-19.5]];
+ function lanterns(){const locations=[[-4.5,3.3,13.5],[4.5,3.3,-13.5],reframe([20,3.2,19],'tea'),reframe([-66,3.2,-19],'grass'),reframe([-25,3.2,-19.6],'market'),reframe([55,3.2,-19.5],'carts')];
   for(const [x,y,z] of locations){post(m.dark,[x-.55,(y+1)/2+.3,z],.08,y+.6);beam([x-.55,y+.72,z],[x+.15,y+.72,z],.085);beam([x,y+.72,z],[x,y+.36,z],.025,m.metal);add(globe,m.lantern,[x,y,z],[.37,.35,.37]);for(const dy of [-.3,.3])add(cylinder,m.dark,[x,y+dy,z],[.21,.075,.21]);for(let i=0;i<8;i++){const a=i*Math.PI/4,pts=[];for(let j=0;j<=12;j++){const t=.40+j/12*(Math.PI-.80);pts.push(new T.Vector3(x+Math.cos(a)*Math.sin(t)*.375,y+Math.cos(t)*.35,z+Math.sin(a)*Math.sin(t)*.375));}add(new T.TubeGeometry(new T.CatmullRomCurve3(pts),12,.011,3,false),m.pale,[0,0,0]);}beam([x,y-.35,z],[x,y-.62,z],.025,m.red);}
   return locations;
  }

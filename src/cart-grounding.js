@@ -6,6 +6,7 @@ import * as T from 'three';
 export function fitCartToGround(group,scene){
  scene.updateMatrixWorld(true);group.updateMatrixWorld(true);
  const surfaces=scene.children.filter(o=>o.isMesh&&o.name==='街巷/岸坡与细部'&&!o.material.transparent);
+ scene.traverse(o=>{if(o.isMesh&&o.name.endsWith('/ground'))surfaces.push(o);});
  const inverse=group.matrixWorld.clone().invert(),ray=new T.Raycaster(),local=new T.Vector3(),world=new T.Vector3(),target=new T.Vector3();
  let fittedVertices=0,clonedGeometries=0;
  group.traverse(mesh=>{
