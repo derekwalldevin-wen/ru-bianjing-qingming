@@ -1,6 +1,7 @@
 import {places,tour} from './content.js?v=original-scroll-v1';
 import {readJourney,journeyLink} from './journey-state.js';
 import {createFrameMonitor} from './frame-monitor.js';
+import {createJourneyAtlas} from './journey-atlas.js?v=journey-atlas-v1';
 import {observations,registerVendorObservation} from './observations.js?v=original-scroll-v1';
 import {createEnhancementQueue,requiredEnhancementsForPlace} from './asset-stream.js';
 const initialJourney=readJourney(location.hash,places);
@@ -78,9 +79,12 @@ async function boot(){const bootStarted=performance.now();try{T=await import('th
  window.__BIANJING__={get mode(){return nav.mode;},get counts(){return world.counts;},get renderInfo(){return{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles};},get assets(){return [...world.kit.templates.keys()];}};
  }catch(err){failed=true;ready=false;$('load-progress').hidden=true;console.error('Scene initialization failed',err);$('load-state').textContent='三维视图暂不可用 · 仍可进入八景图像档案';$('enter').innerHTML='展阅八景 <span>↗</span>';['overview-mode','walk-mode','tour-mode'].forEach(id=>$(id).disabled=true);}}
 function commitLink(){const hash=new URL(journeyLink(location.href,places[current].id,night)).hash;history.replaceState(null,'',location.pathname+location.search+hash);}
-function setCatalog(open){document.body.dataset.catalog=open?'open':'closed';$('catalog-toggle').setAttribute('aria-expanded',String(open));$('catalog-toggle').textContent=open?'收起八景 ↓':'长卷八景 ↑';}
-$('catalog-toggle').onclick=()=>{const open=document.body.dataset.catalog!=='open';if(open)hideObject();setCatalog(open);};
-setCatalog(true);
+function setCatalog(){document.body.dataset.catalog='closed';$('catalog-toggle').setAttribute('aria-expanded','false');$('catalog-toggle').textContent='展卷 · 长卷八景 ↗';}
+const atlas=createJourneyAtlas({dialog:$('journey-atlas'),places,visited,go:i=>{hideObject();if(ready)nav.go(i);else {select(i);openArchive(i);}},archive:openArchive,suspend:()=>{nav?.setEnabled(false);$('catalog-toggle').setAttribute('aria-expanded','true');}});
+$('catalog-toggle').setAttribute('aria-controls','journey-atlas');$('catalog-toggle').setAttribute('aria-haspopup','dialog');
+$('journey-atlas').addEventListener('close',()=>$('catalog-toggle').setAttribute('aria-expanded','false'));
+$('catalog-toggle').onclick=()=>atlas.open(current);
+setCatalog();
 function transitionChanged(state){$('silk-transition').style.opacity=String(state.opacity);$('transition-status').classList.toggle('hidden',!state.active);document.body.dataset.transition=state.active?state.kind:'idle';$('world').dataset.pendingPlace=state.pending?places[state.pending.index].id:'';$$('#places button').forEach((b,i)=>b.classList.toggle('pending',state.active&&i===state.pending.index));if(state.active)$('transition-name').textContent='前往 · '+places[state.pending.index].name;}
 $('transition-skip').onclick=()=>nav?.skip();
 function hideObject(){selectedObject=null;document.body.dataset.observation='';syncEnhancements();$('object-card').classList.add('hidden');}
