@@ -2,6 +2,7 @@ import * as T from 'three';
 import {mergeGeometries} from '../vendor/BufferGeometryUtils.js';
 import {projectSurfaceUV} from './surface-textures.js';
 import {canalCenter,canalHalfWidth,bankHeight,landscapeBounds} from './landscape-layout.js';
+import {installLandscapeInk} from './ink-landscape.js?v=ink-landscape-v1';
 
 // Low-cost actual 3D city and mineral-colour mountains. No bitmap backdrop,
 // no new GLB, and no second water reflection pass.
@@ -11,9 +12,10 @@ export function createLandscape(scene,{materials,colliders}){
  const buckets=new Map(),matrix=new T.Matrix4(),dummy=new T.Object3D();
  const mats={};for(const key of ['wall','roof','wood','ground','grass']){mats[key]=materials[key].clone();mats[key].vertexColors=true;mats[key].color.set('#ffffff');}
  const palettes={wall:['#c4b79a','#b6aa8e','#d0c3a7'],roof:['#526b63','#677367','#787563'],wood:['#725941','#544739'],ground:['#9d906e','#a39977'],grass:['#687f59','#809768','#4f7965']};
- const box=new T.BoxGeometry(1,1,1),leaf=new T.IcosahedronGeometry(1,1);
+ const box=new T.BoxGeometry(1,1,1),leaf=new T.IcosahedronGeometry(1,0),twig=new T.CylinderGeometry(.45,1,1,5),inkMaterials=[];
+ const dot=(i,j)=>{const n=Math.sin(i*137.7+j*79.3+39.7)*43758.5453;return n-Math.floor(n);};
  function add(geometry,key,pos,scale=[1,1,1],rotation=0,color=palettes[key][0],category='town'){
-  dummy.position.set(...pos);dummy.scale.set(...scale);dummy.rotation.set(0,rotation,0);dummy.updateMatrix();matrix.copy(dummy.matrix);
+  dummy.position.set(...pos);dummy.scale.set(...scale);Array.isArray(rotation)?dummy.rotation.set(...rotation):dummy.rotation.set(0,rotation,0);dummy.updateMatrix();matrix.copy(dummy.matrix);
   const g=geometry.index?geometry.toNonIndexed():geometry.clone();for(const k of Object.keys(g.attributes))if(!['position','normal'].includes(k))g.deleteAttribute(k);
   g.applyMatrix4(matrix);projectSurfaceUV(g,mats[key]);
   const c=new T.Color(color),a=new Float32Array(g.attributes.position.count*3);for(let i=0;i<a.length;i+=3){a[i]=c.r;a[i+1]=c.g;a[i+2]=c.b;}g.setAttribute('color',new T.BufferAttribute(a,3));
@@ -84,15 +86,28 @@ export function createLandscape(scene,{materials,colliders}){
  for(let i=0;i<125;i++){
   const x=-390+rnd()*780,side=i%2?1:-1,z=canalCenter(x)+side*(100+rnd()*100),h=3+rnd()*5;
   if(occupied.some(c=>Math.abs(x-c.x)<c.w+2&&Math.abs(z-c.z)<c.d+2))continue;
-  const ground=bankHeight(x,z);cube('wood',[x,ground+h*.4,z],[.25,h*.8,.25],0,'#685440','grove');
-  add(leaf,'grass',[x,h+ground,z],[2+rnd()*2.2,h*.5,2+rnd()*2],0,palettes.grass[i%3],'grove');
+  // Preserve the original two canopy RNG draws so mountain locations and
+  // the entire existing city remain deterministic across the art revision.
+  const ground=bankHeight(x,z),cx=2+rnd()*2.2,cz=2+rnd()*2;
+  cube('wood',[x,ground+h*.40,z],[.17,h*.80,.17],0,'#414b3b','grove');
+  for(let j=0;j<3;j++){
+   const angle=j*2.1+dot(i,0),length=h*(.34+dot(i,j+4)*.13);
+   const direction=new T.Vector3(Math.cos(angle)*.6,.8,Math.sin(angle)*.6).normalize(),transform=new T.Object3D();transform.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),direction);
+   const start=new T.Vector3(x,ground+h*.56,z),mid=start.clone().addScaledVector(direction,length/2);
+   add(twig,'wood',mid.toArray(),[.09,length,.09],transform.rotation.toArray().slice(0,3),'#414b3b','grove');
+  }
+  for(let j=0;j<7;j++){
+   const a=j*2.4+dot(i,j+11)*.8,spread=j===0?.12:.70+dot(i,j+22)*.2;
+   const px=x+Math.cos(a)*cx*spread,pz=z+Math.sin(a)*cz*spread,py=ground+h*(j===0?1.13:.82+dot(i,j+31)*.24);
+   add(leaf,'grass',[px,py,pz],[cx*(.49+dot(i,j+44)*.18),h*(.15+dot(i,j+51)*.09),cz*(.48+dot(i,j+62)*.17)],a,['#536b52','#69775b','#3f5d50'][(i+j)%3],'grove');
+  }
  }
  for(const side of [-1,1])for(let i=0;i<12;i++){const x=-360+i*62,z=canalCenter(x)+side*(135+(i%3)*18),rows=[];for(const dx of [-19,19])rows.push([-7,7].map(dz=>[x+dx,bankHeight(x+dx,z+dz)+.025,z+dz]));strip(rows,'grass',palettes.grass[i%3],'fields');}
  // Low rolling foothills and three rings of real, parallax-producing peaks.
  // Vertex pigment interpolates from ochre roots to malachite and azurite.
  const mountainMaterials=[];let mountainTriangles=0;
  for(let layer=0;layer<3;layer++){
-  const material=new T.MeshStandardMaterial({vertexColors:true,roughness:1,fog:false});mountainMaterials.push(material);
+  const material=installLandscapeInk(new T.MeshStandardMaterial({vertexColors:true,roughness:1,fog:false}),{layer});mountainMaterials.push(material);inkMaterials.push(material);
   const day=new T.Color(['#467d71','#53918e','#79a6a1'][layer]),foot=new T.Color(['#8d9b6c','#9fae88','#b4bfb0'][layer]);
   const radius=[345,590,900][layer],count=[25,29,33][layer],geometries=[];
   for(let i=0;i<count;i++){
@@ -114,23 +129,13 @@ export function createLandscape(scene,{materials,colliders}){
    const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('color',new T.Float32BufferAttribute(c,3));g.setIndex(indices);g.computeVertexNormals();geometries.push(g);
   }
   const merged=mergeGeometries(geometries);geometries.forEach(g=>g.dispose());const mesh=new T.Mesh(merged,material);mesh.name=`青绿远山 / ${layer+1}`;mesh.castShadow=false;mesh.receiveShadow=false;root.add(mesh);mountainTriangles+=merged.index.count/3;
-  // Custom distance/height veil: conventional near-city fog would erase the
-  // mountains, while disabling all fog would look like a hard toy backdrop.
-  material.onBeforeCompile=shader=>{shader.uniforms.landscapeNight={value:0};material.userData.shader=shader;
-   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vLandscapeWorld;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvLandscapeWorld=(modelMatrix*vec4(transformed,1.0)).xyz;');
-   shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vLandscapeWorld;\nuniform float landscapeNight;').replace('#include <opaque_fragment>',`float distanceVeil=smoothstep(240.0,1300.0,length(cameraPosition-vLandscapeWorld));
-    float footVeil=(1.0-smoothstep(1.0,45.0,vLandscapeWorld.y))*.65;
-    vec3 veil=mix(vec3(.70,.77,.66),vec3(.09,.18,.19),landscapeNight);
-    outgoingLight=mix(outgoingLight,veil,clamp(distanceVeil*.65+footVeil,0.0,.90));
-    #include <opaque_fragment>`);
-  };
  }
  let drawables=3,triangles=mountainTriangles;
  for(const {key,category,parts}of buckets.values()){
-  const geometry=mergeGeometries(parts);parts.forEach(g=>g.dispose());const mesh=new T.Mesh(geometry,mats[key]);mesh.name=`长卷/${category}/${key}`;mesh.castShadow=category==='town';mesh.receiveShadow=true;root.add(mesh);drawables++;triangles+=geometry.attributes.position.count/3;
+  const geometry=mergeGeometries(parts);parts.forEach(g=>g.dispose());let material=mats[key];if(category==='grove'&&key==='grass'){material=installLandscapeInk(material.clone(),{foliage:true});inkMaterials.push(material);}const mesh=new T.Mesh(geometry,material);mesh.name=`长卷/${category}/${key}`;mesh.castShadow=category==='town';mesh.receiveShadow=true;root.add(mesh);drawables++;triangles+=geometry.attributes.position.count/3;
  }
- box.dispose();leaf.dispose();roof.dispose();buckets.clear();
- function setQuality(value){root.traverse(o=>{if(!o.isMesh)return;o.castShadow=value!=='low'&&o.name.startsWith('长卷/town/');if(o.name.startsWith('长卷/grove/'))o.visible=value!=='low';});}
- function update(night){for(const material of mountainMaterials)if(material.userData.shader)material.userData.shader.uniforms.landscapeNight.value=night;}
- return{root,buildings,update,setQuality,bounds:landscapeBounds,stats:{buildings:buildings.length,nearBuildings:buildings.filter(b=>!b.far).length,farBuildings:buildings.filter(b=>b.far).length,drawables,triangles,modelBytes:0,mountainLayers:3,canalLength:1240}};
+ box.dispose();leaf.dispose();twig.dispose();roof.dispose();buckets.clear();
+ function setQuality(value){root.traverse(o=>{if(!o.isMesh)return;o.castShadow=value!=='low'&&o.name.startsWith('长卷/town/');});for(const m of inkMaterials){m.userData.inkDetail=value==='low'?0:1;if(m.userData.shader)m.userData.shader.uniforms.inkDetail.value=m.userData.inkDetail;}}
+ function update(night){for(const material of inkMaterials)if(material.userData.shader)material.userData.shader.uniforms.landscapeNight.value=night;}
+ return{root,buildings,update,setQuality,inkMaterials,bounds:landscapeBounds,stats:{buildings:buildings.length,nearBuildings:buildings.filter(b=>!b.far).length,farBuildings:buildings.filter(b=>b.far).length,drawables,triangles,modelBytes:0,mountainLayers:3,canalLength:1240,artStyle:'淡青绿彩墨',inkMaterials:inkMaterials.length}};
 }
