@@ -1,19 +1,21 @@
 import * as T from 'three';
 import {templateParts} from './period-assets.js';
+import {tailorTravellerPart} from './traveller-tailoring.js?v=tailored-traveller-v1';
 
-// Original project scholar: shared mesh/texture data, owned fade materials.
+// Original scholar: three owned cloth surfaces, otherwise shared mesh/texture data.
 // People source is not upgraded; scene references also protect shared resources
-// from progressive retirement. Dispose only the materials owned here.
+// from progressive retirement. Dispose only owned cloth and fade materials.
 export function createTraveller(scene,kit,world){
  const root=new T.Group();root.name='旅人/宋人行旅（场景演绎）';root.visible=false;scene.add(root);
- const parts=templateParts(kit.templates.get('person_scholar')),materials=new Map(),rig={},entries=[];
+ const parts=templateParts(kit.templates.get('person_scholar')),materials=new Map(),rig={},entries=[],ownedGeometries=new Set();
  const bind=new T.Matrix4(),turn=new T.Matrix4(),correction=new T.Matrix4(),adjust=new T.Matrix4(),matrix=new T.Matrix4();
  const v=new T.Vector3(),hip=new T.Vector3(),ankle=new T.Vector3(),normal=new T.Vector3(),up=new T.Vector3(0,1,0),quaternion=new T.Quaternion();
- let phase=0,blend=0,alpha=1,disposed=false;const stats={meshes:0,vertices:0,triangles:0,radius:0,height:0,minSoleGap:0};
+ let phase=0,blend=0,alpha=1,disposed=false;const stats={meshes:0,vertices:0,triangles:0,sourceTriangles:0,tailoredParts:0,tailoringEnabled:true,radius:0,height:0,minSoleGap:0};
  const bounds=new T.Box3();
  for(const part of parts){
   const source=Array.isArray(part.material)?part.material:[part.material],clones=source.map(m=>{if(!materials.has(m)){const clone=m.clone();clone.transparent=true;materials.set(m,clone);}return materials.get(m);});
-  const mesh=new T.Mesh(part.geometry,Array.isArray(part.material)?clones:clones[0]);mesh.name=part.name;mesh.matrixAutoUpdate=false;mesh.castShadow=mesh.receiveShadow=true;root.add(mesh);
+  const tailored=tailorTravellerPart(part);if(tailored){ownedGeometries.add(tailored);stats.tailoredParts++;}
+  const mesh=new T.Mesh(tailored??part.geometry,Array.isArray(part.material)?clones:clones[0]);mesh.name=part.name;mesh.matrixAutoUpdate=false;mesh.castShadow=mesh.receiveShadow=true;root.add(mesh);
   const joint=/leg_left|leg_right|foot_left|foot_right/.exec(part.name)?.[0];
   if(joint&&!rig[joint])rig[joint]={pivot:new T.Vector3().setFromMatrixPosition(part.matrix),points:[],triangles:[]};
   const offset=joint?.startsWith('foot_')?rig[joint].points.length:0;
@@ -29,8 +31,8 @@ export function createTraveller(scene,kit,world){
     if((b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x)>1e-10)foot.triangles.push(...ids);
    }
   }
-  stats.vertices+=vertices.count;stats.triangles+=(part.geometry.index?.count??vertices.count)/3;
-  entries.push({part,mesh,joint});
+  stats.vertices+=mesh.geometry.attributes.position.count;stats.triangles+=(mesh.geometry.index?.count??mesh.geometry.attributes.position.count)/3;stats.sourceTriangles+=(part.geometry.index?.count??vertices.count)/3;
+  entries.push({part,mesh,joint,tailored});
  }
  stats.meshes=entries.length;stats.height=bounds.max.y-bounds.min.y;
  world.setVisitorRadius?.(stats.radius+.035);
@@ -72,6 +74,7 @@ export function createTraveller(scene,kit,world){
   const next=T.MathUtils.clamp((distance-.35)/.85,0,1);if(Math.abs(alpha-next)>.005){alpha=next;for(const material of materials.values()){material.opacity=alpha;material.depthWrite=alpha>.98;}}
   root.visible=alpha>.01;root.updateMatrixWorld(true);
  }
- function dispose(){if(disposed)return;disposed=true;scene.remove(root);for(const material of materials.values())material.dispose();}
- return {root,update,dispose,stats};
+ function setTailoringEnabled(value){if(disposed)return;stats.tailoringEnabled=Boolean(value);for(const entry of entries)entry.mesh.geometry=stats.tailoringEnabled&&entry.tailored?entry.tailored:entry.part.geometry;}
+ function dispose(){if(disposed)return;disposed=true;scene.remove(root);for(const geometry of ownedGeometries)geometry.dispose();for(const material of materials.values())material.dispose();}
+ return {root,update,dispose,stats,setTailoringEnabled};
 }
