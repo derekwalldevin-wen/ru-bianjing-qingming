@@ -1,6 +1,8 @@
 import * as T from 'three';
 import {templateParts} from './period-assets.js';
 import {tailorTravellerPart} from './traveller-tailoring.js?v=tailored-traveller-v1';
+import {createTravellerMotion} from './traveller-motion.js?v=living-traveller-v1';
+import {prepareTravellerRobeMotion} from './traveller-robe-motion.js?v=living-traveller-v1';
 
 // Original scholar: three owned cloth surfaces, otherwise shared mesh/texture data.
 // People source is not upgraded; scene references also protect shared resources
@@ -9,12 +11,13 @@ export function createTraveller(scene,kit,world){
  const root=new T.Group();root.name='旅人/宋人行旅（场景演绎）';root.visible=false;scene.add(root);
  const parts=templateParts(kit.templates.get('person_scholar')),materials=new Map(),rig={},entries=[],ownedGeometries=new Set();
  const bind=new T.Matrix4(),turn=new T.Matrix4(),correction=new T.Matrix4(),adjust=new T.Matrix4(),matrix=new T.Matrix4();
+ const upper=new T.Matrix4(),pivotBack=new T.Matrix4().makeTranslation(0,-.96,0),headTurn=new T.Matrix4(),motion=createTravellerMotion();
  const v=new T.Vector3(),hip=new T.Vector3(),ankle=new T.Vector3(),normal=new T.Vector3(),up=new T.Vector3(0,1,0),quaternion=new T.Quaternion();
- let phase=0,blend=0,alpha=1,disposed=false;const stats={meshes:0,vertices:0,triangles:0,sourceTriangles:0,tailoredParts:0,tailoringEnabled:true,radius:0,height:0,minSoleGap:0};
+ let motionEnabled=true,alpha=1,disposed=false;const stats={meshes:0,vertices:0,triangles:0,sourceTriangles:0,tailoredParts:0,tailoringEnabled:true,radius:0,height:0,minSoleGap:0};
  const bounds=new T.Box3();
  for(const part of parts){
   const source=Array.isArray(part.material)?part.material:[part.material],clones=source.map(m=>{if(!materials.has(m)){const clone=m.clone();clone.transparent=true;materials.set(m,clone);}return materials.get(m);});
-  const tailored=tailorTravellerPart(part);if(tailored){ownedGeometries.add(tailored);stats.tailoredParts++;}
+  const tailored=tailorTravellerPart(part),movingRobe=Boolean(tailored&&part.name==='person_scholar__body/folded_robe');if(tailored){if(movingRobe)prepareTravellerRobeMotion(tailored);ownedGeometries.add(tailored);stats.tailoredParts++;}
   const mesh=new T.Mesh(tailored??part.geometry,Array.isArray(part.material)?clones:clones[0]);mesh.name=part.name;mesh.matrixAutoUpdate=false;mesh.castShadow=mesh.receiveShadow=true;root.add(mesh);
   const joint=/leg_left|leg_right|foot_left|foot_right/.exec(part.name)?.[0];
   if(joint&&!rig[joint])rig[joint]={pivot:new T.Vector3().setFromMatrixPosition(part.matrix),points:[],triangles:[]};
@@ -32,7 +35,7 @@ export function createTraveller(scene,kit,world){
    }
   }
   stats.vertices+=mesh.geometry.attributes.position.count;stats.triangles+=(mesh.geometry.index?.count??mesh.geometry.attributes.position.count)/3;stats.sourceTriangles+=(part.geometry.index?.count??vertices.count)/3;
-  entries.push({part,mesh,joint,tailored});
+  entries.push({part,mesh,joint,tailored,movingRobe});
  }
  stats.meshes=entries.length;stats.height=bounds.max.y-bounds.min.y;
  world.setVisitorRadius?.(stats.radius+.035);
@@ -41,14 +44,15 @@ export function createTraveller(scene,kit,world){
   foot.surface={vertices:new Float64Array(foot.points.flatMap(p=>p.toArray())),world:new Float64Array(foot.points.length*3),triangles:new Uint32Array(foot.triangles),edges:new Uint32Array(foot.triangles.flatMap((_,i,a)=>i%3===0?[a[i],a[i+1],a[i+1],a[i+2],a[i+2],a[i]]:[]))};
  }
  function update(state,dt,camera,reduced=false){
-  if(disposed)return;root.visible=state.visible;if(!root.visible){blend=0;return;}
+  if(disposed)return;root.visible=state.visible;if(!root.visible){motion.reset();return;}
   const position=state.position,base=world.contactFloor(position.x,position.z),step=Math.min(.1,Math.max(0,dt));
-  blend=reduced?0:T.MathUtils.damp(blend,Math.min(1,state.speed/2),16,step);
-  phase+=Math.min(6,state.speed)*step*5;const stride=Math.sin(phase)*blend;
+  const pose=motion.update(state,step,{reduced,enabled:motionEnabled&&stats.tailoringEnabled}),stride=pose.stride;
+  upper.makeTranslation(0,.96+pose.bob,0).multiply(turn.makeRotationZ(pose.sway)).multiply(turn.makeRotationX(pose.lean)).multiply(pivotBack);
+  headTurn.makeRotationY(pose.headYaw).multiply(turn.makeRotationX(pose.headPitch));
   root.position.set(position.x,base,position.z);root.rotation.set(0,state.yaw,0);root.updateMatrix();bind.copy(root.matrix);
   const feet={},legs={};stats.minSoleGap=Infinity;
   for(const side of ['left','right']){
-   const sign=side==='left'?1:-1,angle=stride*sign*.025,leg=rig['leg_'+side],foot=rig['foot_'+side];
+   const sign=side==='left'?1:-1,angle=stride*sign*.075,leg=rig['leg_'+side],foot=rig['foot_'+side];
    hip.copy(leg.pivot).applyMatrix4(bind);ankle.copy(foot.pivot).sub(leg.pivot).applyMatrix4(turn.makeRotationX(angle)).add(leg.pivot).applyMatrix4(bind);
    const hx=(world.contactFloor(ankle.x+.035,ankle.z)-world.contactFloor(ankle.x-.035,ankle.z))/.07,hz=(world.contactFloor(ankle.x,ankle.z+.035)-world.contactFloor(ankle.x,ankle.z-.035))/.07;
    normal.set(-hx,1,-hz).normalize();quaternion.setFromUnitVectors(up,normal);
@@ -64,10 +68,12 @@ export function createTraveller(scene,kit,world){
   }
   // Limb calculations above are in world space; convert back into the root.
   const inverse=bind.clone().invert();
-  for(const {part,mesh,joint}of entries){
+  for(const {part,mesh,joint,movingRobe}of entries){
    const side=joint?.endsWith('left')?'left':'right';
    if(joint?.startsWith('foot_'))matrix.multiplyMatrices(feet[side],part.matrix);
-   else{matrix.multiplyMatrices(bind,part.matrix);if(joint?.startsWith('leg_'))matrix.multiply(turn.makeRotationX(legs[side].angle)).premultiply(legs[side].adjust);}
+   else if(joint?.startsWith('leg_'))matrix.multiplyMatrices(bind,part.matrix).multiply(turn.makeRotationX(legs[side].angle)).premultiply(legs[side].adjust);
+   else if(movingRobe){matrix.multiplyMatrices(bind,part.matrix);mesh.morphTargetInfluences[0]=pose.lean/.025;mesh.morphTargetInfluences[1]=pose.sway/.018;mesh.morphTargetInfluences[2]=pose.bob/.01;}
+   else{matrix.multiplyMatrices(bind,upper).multiply(part.matrix);if(part.name.startsWith('person_scholar__head/'))matrix.multiply(headTurn);}
    mesh.matrix.multiplyMatrices(inverse,matrix);mesh.matrixWorldNeedsUpdate=true;
   }
   const distance=camera.position.distanceTo(new T.Vector3(position.x,base+1.15,position.z));
@@ -76,5 +82,5 @@ export function createTraveller(scene,kit,world){
  }
  function setTailoringEnabled(value){if(disposed)return;stats.tailoringEnabled=Boolean(value);for(const entry of entries)entry.mesh.geometry=stats.tailoringEnabled&&entry.tailored?entry.tailored:entry.part.geometry;}
  function dispose(){if(disposed)return;disposed=true;scene.remove(root);for(const geometry of ownedGeometries)geometry.dispose();for(const material of materials.values())material.dispose();}
- return {root,update,dispose,stats,setTailoringEnabled};
+ return {root,update,dispose,stats,setTailoringEnabled,motionPose:motion.pose,get motionEnabled(){return motionEnabled;},setMotionEnabled(value){motionEnabled=Boolean(value);motion.reset();}};
 }
