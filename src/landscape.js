@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {mergeGeometries} from '../vendor/BufferGeometryUtils.js';
-import {projectSurfaceUV} from './surface-textures.js';
+import {projectSurfaceUV} from './surface-textures.js?v=shore-art-v1';
 import {canalCenter,canalHalfWidth,bankHeight,landscapeBounds} from './landscape-layout.js?v=original-scroll-v1';
 import {buildPaintedGate} from './painted-gate.js?v=original-scroll-v1';
 import {paintedGate,streetRoute,ruralRoute} from './painting-layout.js?v=original-scroll-v1';
@@ -12,7 +12,7 @@ export function createLandscape(scene,{materials,colliders}){
  const root=new T.Group();root.name='青绿长卷 · 城郊与远山';scene.add(root);
  let seed=43107;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
  const buckets=new Map(),matrix=new T.Matrix4(),dummy=new T.Object3D();
- const mats={};for(const key of ['wall','roof','wood','ground','grass']){mats[key]=materials[key].clone();mats[key].vertexColors=true;mats[key].color.set('#ffffff');}
+ const mats={};for(const key of ['wall','roof','wood','ground','grass']){mats[key]=materials[key].clone();mats[key].vertexColors=true;mats[key].color.set('#ffffff');if(materials[key].userData.shoreEarth){mats[key].onBeforeCompile=materials[key].onBeforeCompile;mats[key].customProgramCacheKey=materials[key].customProgramCacheKey;}}
  const palettes={wall:['#c4b79a','#b6aa8e','#d0c3a7'],roof:['#526b63','#677367','#787563'],wood:['#725941','#544739'],ground:['#9d906e','#a39977'],grass:['#687f59','#809768','#4f7965']};
  const box=new T.BoxGeometry(1,1,1),leaf=new T.IcosahedronGeometry(1,0),twig=new T.CylinderGeometry(.45,1,1,5),inkMaterials=[];
  const dot=(i,j)=>{const n=Math.sin(i*137.7+j*79.3+39.7)*43758.5453;return n-Math.floor(n);};

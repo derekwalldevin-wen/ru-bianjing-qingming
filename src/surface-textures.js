@@ -17,11 +17,12 @@ export function makeSurfaceTextures(kind,size=512){
   const u=x/size,v=y/size,n=noise(u,v,8),detail=noise(u,v,64),fine=hash(x,y);
   let h=.5,c=.9,r=.9;
   if(kind==='earth'){
-   const cx=Math.floor(u*64),cy=Math.floor(v*64),seed=hash(cx,cy);
-   const dx=fract(u*64)-(.3+hash(cx+70,cy)*.4),dy=fract(v*64)-(.3+hash(cx,cy+80)*.4);
-   const radius=.12+seed*.11,pebble=seed>.60?1-T.MathUtils.smoothstep(Math.hypot(dx,dy),radius*.5,radius):0;
-   h=.36+n*.07+detail*.035+pebble*.20;
-   c=.85+(n-.5)*.095+(detail-.5)*.055+(fine-.5)*.08+pebble*(seed>.83?.13:-.16);
+   const cx=Math.floor(u*32),cy=Math.floor(v*32),seed=hash(cx,cy);
+   const dx=fract(u*32)-(.25+hash(cx+70,cy)*.5),dy=fract(v*32)-(.25+hash(cx,cy+80)*.5);
+   const radius=.13+seed*.07,pebble=seed>.91?1-T.MathUtils.smoothstep(Math.hypot(dx,dy),radius*.5,radius):0;
+   const soil=noise(u,v,4)*.58+n*.29+noise(u,v,24)*.13;
+   h=.39+soil*.065+detail*.018+pebble*.13;
+   c=.845+(soil-.5)*.27+(detail-.5)*.056+(fine-.5)*.026+pebble*(seed>.965?.085:-.11);r=.89+detail*.07;
   }else if(kind==='paving'){
    const row=Math.floor(v*6),uu=u*4+(row%2)*.5,col=Math.floor(uu),a=fract(uu),b=fract(v*6);
    const edge=Math.min(a,1-a,b,1-b),bevel=T.MathUtils.smoothstep(edge,.025,.11);
@@ -62,7 +63,21 @@ export function applySurfaceTextures(materials){
   Object.assign(m,sets.get(kind));m.normalScale.setScalar(strength);m.roughness=1;
   m.userData.textureMeters=meters;m.userData.surfaceKind=kind;m.userData.normalStrength=strength;textured.push(m);
  }
- apply('road','earth',3.4,.95);apply('ground','earth',4.5,.65);
+ apply('road','earth',3.4,.68);apply('ground','earth',4.5,.52);
+ for(const key of ['road','ground']){
+  const material=materials[key];material.userData.shoreEarth='shore-earth-v1';material.customProgramCacheKey=()=> 'shore-earth-v1';
+  material.onBeforeCompile=shader=>{
+   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vEarthWorld;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvEarthWorld=(modelMatrix*vec4(transformed,1.0)).xyz;');
+   shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vEarthWorld;').replace('#include <color_fragment>',`#include <color_fragment>
+    vec2 earthPoint=vEarthWorld.xz;
+    float earthWash=sin(earthPoint.x*.137+sin(earthPoint.y*.31))*sin(earthPoint.y*.193+sin(earthPoint.x*.071));
+    float canalT=max(abs(earthPoint.x)-135.0,0.0);
+    float canalLine=-(canalT*canalT/(canalT+180.0)*.39+sin(canalT/130.0)*canalT/(canalT+90.0)*26.0);
+    float bankDistance=abs(earthPoint.y-canalLine)-(10.25+max(abs(earthPoint.x)-145.0,0.0)*.027);
+    float dampBank=1.0-smoothstep(.6,3.8,bankDistance);
+    diffuseColor.rgb*=vec3(.96+earthWash*.065,.97+earthWash*.04,.98-earthWash*.012)*mix(vec3(1.0),vec3(.83,.86,.81),dampBank*.48);`);
+  };
+ }
  apply('paving','paving',3.6,.8);apply('stone','plaster',1.8,.7);
  for(const key of ['wood','pale','dark'])apply(key,'wood',2,.55);
  for(const key of ['wall','wall2'])apply(key,'plaster',2.2,.5);

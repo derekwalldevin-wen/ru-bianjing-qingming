@@ -2,16 +2,17 @@ import * as T from 'three';
 import {mergeGeometries} from '../vendor/BufferGeometryUtils.js';
 import {createLighting} from './lighting.js?v=original-scroll-v1';
 import {createRiver} from './river.js?v=original-scroll-v1';
-import {applySurfaceTextures,projectSurfaceUV} from './surface-textures.js';
+import {applySurfaceTextures,projectSurfaceUV} from './surface-textures.js?v=shore-art-v1';
 import {createDetailBuilder} from './details.js?v=original-scroll-v1';
 import {createAssetInstances,createAssetObject,prepareAssetKit,disposeAssetScene,replaceObjectVisual} from './period-assets.js';
 import {createPeriodCrowd} from './period-crowd.js?v=visible-traveller-v1';
+import {createShoreVegetation} from './shore-vegetation.js?v=shore-art-v1';
 import {circleHitsBox} from './crowd-motion.js?v=visible-traveller-v1';
 import {createCloseupDetails,closeupFloor} from './closeup-details.js?v=original-scroll-v1';
 import {createFeaturedFrontage} from './featured-frontage.js';
 import {fitCartToGround} from './cart-grounding.js?v=original-scroll-v1';
 import {createTerrainSupport} from './terrain-support.js?v=original-scroll-v1';
-import {createLandscape} from './landscape.js?v=painterly-relief-v1';
+import {createLandscape} from './landscape.js?v=shore-art-v1';
 import {placePaintedTreeGrove} from './painted-tree-grove.js?v=original-tree-grove-v1';
 import {expandedWalkBounds,bankHeight,canalCenter,canalHalfWidth} from './landscape-layout.js?v=original-scroll-v1';
 import {visibleRoofPlan,heroFrames,reframe,distanceToRoute,streetRoute,paintedGate} from './painting-layout.js?v=original-scroll-v1';
@@ -22,7 +23,7 @@ export function createWorld(scene,kit){
  let seed=927;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
  const mat=(color,extra={})=>new T.MeshStandardMaterial({color,roughness:.92,...extra});
  const m={wood:mat('#705039'),dark:mat('#48382c'),pale:mat('#a88c61'),wall:mat('#bcb095'),wall2:mat('#b5a388'),roof:mat('#585c59'),tile:mat('#767a70'),stone:mat('#918676'),ground:mat('#9d906e'),road:mat('#b9a57f'),grass:mat('#727853'),leaf:mat('#6d7c51'),leaf2:mat('#7c8959'),cloth:mat('#c2b696',{side:T.DoubleSide}),red:mat('#824b37'),straw:mat('#a08a54'),waterline:mat('#747957'),jar:mat('#81604a'),window:mat('#c5a971',{emissive:'#b57a32',emissiveIntensity:.08}),paving:mat('#978e7e'),rut:mat('#5f503e',{transparent:true,opacity:.23,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1}),metal:mat('#504b41',{metalness:.4,roughness:.8}),ceramic:mat('#789086',{roughness:.4}),lantern:mat('#d7bd89',{emissive:'#ffb452',emissiveIntensity:.15})};
- const surfaces=applySurfaceTextures(m),batches=new Map(),placements=new Map(),colliders=[],boats=[],flags=[],persons=[];
+ const surfaces=applySurfaceTextures(m),batches=new Map(),placements=new Map(),colliders=[],boats=[],flags=[],persons=[],bankSprigs=[];
  const box=new T.BoxGeometry(1,1,1),cylinder=new T.CylinderGeometry(1,1,1,8),orb=new T.IcosahedronGeometry(1,1),dummy=new T.Object3D();
  function add(geometry,material,pos,scale=[1,1,1],rotation=[0,0,0]){
   dummy.position.set(...pos);dummy.scale.set(...scale);dummy.rotation.set(...rotation);dummy.updateMatrix();
@@ -44,7 +45,7 @@ export function createWorld(scene,kit){
    const quay=(x>-55&&x<-23)||(x>29&&x<51)||Math.abs(x)<5,edge=10.75+Math.sin(x*.21)*.13;
    if(quay){cube(m.stone,[x,.27,side*edge],[1.97,.66,.75],[0,(rnd()-.5)*.045,0]);cube(m.paving,[x,.62,side*11.25],[1.94,.12,.68]);}
    else {cube(m.ground,[x,.15,side*10.86],[2.13,.68,.85],[side*.22,0,0]);if(Math.round(x)%3===0)post(m.dark,[x,.42,side*10.45],.09,.82);}
-   if(Math.abs(x)>7&&rnd()>.54)for(let n=0;n<3;n++){const bx=x+rnd()*.9,bz=side*(10.8+rnd()*.6);beam([bx,.5,bz],[bx+.15,.9+rnd()*.48,bz+side*.1],.018,m.grass);}
+   if(Math.abs(x)>7&&rnd()>.54)for(let n=0;n<3;n++){const bx=x+rnd()*.9,bz=side*(10.8+rnd()*.6),oldHeight=.9+rnd()*.48;bankSprigs.push({x:bx,z:bz,sourceHeight:oldHeight});}
   }
   cube(m.paving,[0,.627,side*14.55],[6.3,.03,2.1]);
   for(const track of [-.67,.67]){
@@ -185,6 +186,7 @@ export function createWorld(scene,kit){
  const grassFrontage=createFeaturedFrontage(scene,placements,{template:'building_thatch',anchor:heroFrames.grass.to,detail:'detail_grass_frontage'});
  const cartObservation=createFeaturedFrontage(scene,placements,{template:'cart_ox',anchor:heroFrames.carts.to,detail:'detail_ox_cart',verticalOffset:-.007,prepare:group=>fitCartToGround(group,scene)});
  for(const [material,geometries] of batches){const mesh=new T.Mesh(mergeGeometries(geometries),material);mesh.name='街巷/岸坡与细部';mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);geometries.forEach(g=>g.dispose());}batches.clear();
+ const shoreVegetation=createShoreVegetation(scene,bankSprigs,contactFloor);
  const lighting=createLighting(scene,m,river.material,lanternLocations);
  const enhancedKinds=new Set();let assetQuality='standard',anisotropy=4,boatDetailVisible=false;
  function setBoatDetailVisible(refined){
@@ -225,12 +227,12 @@ export function createWorld(scene,kit){
   Object.assign(kit,candidate);enhancedKinds.add(kind);
   disposeAssetScene(previous,[scene,...Object.values(kit.scenes)]);
  }
- function update(time,dt,reduced,night,camera,visitor){closeups.update(camera);lighting.update(time,dt,night,reduced,camera);landscape.update(lighting.dusk);for(const b of boats){b.g.position.y=.17+(reduced?0:Math.sin(time*.6+b.phase)*.025);b.g.position.x=b.moving&&!reduced?((b.x+time*.36+108)%216)-108:b.x;}river.update(dt,reduced,boats,lighting);crowd.update(time,reduced,camera,visitor);for(const f of flags)f.mesh.rotation.y=reduced?0:Math.sin(time*.7+f.x)*.025;}
+ function update(time,dt,reduced,night,camera,visitor){shoreVegetation.update(time,reduced,camera);closeups.update(camera);lighting.update(time,dt,night,reduced,camera);landscape.update(lighting.dusk);for(const b of boats){b.g.position.y=.17+(reduced?0:Math.sin(time*.6+b.phase)*.025);b.g.position.x=b.moving&&!reduced?((b.x+time*.36+108)%216)-108:b.x;}river.update(dt,reduced,boats,lighting);crowd.update(time,reduced,camera,visitor);for(const f of flags)f.mesh.rotation.y=reduced?0:Math.sin(time*.7+f.x)*.025;}
  let visitorRadius=.32,visitorStaticRadius=.28;
  function setVisitorRadius(value){if(!Number.isFinite(value)||value<.28||value>1)throw new Error('Invalid visitor body radius');visitorRadius=visitorStaticRadius=value;}
  function valid(x,z,r=.28){if(Math.abs(x)>345||Math.abs(z)>150)return false;if(Math.abs(x)>104?!expandedWalkBounds(x,z):Math.abs(z)<11.8&&Math.abs(x)>2.93-r)return false;return !colliders.some(c=>Math.abs(x-c.x)<c.w+r&&Math.abs(z-c.z)<c.d+r);}
  function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:closeupFloor(x,z,Math.abs(x)>104?(terrainSupport.height(x,z)??.62):.62);}
  function canWalk(x,z){return valid(x,z,visitorStaticRadius)&&crowd.motion.validVisitor(x,z,visitorRadius);}
  function walkSpawn(x,z){for(let ring=0;ring<16;ring++){const n=ring?ring*8:1;for(let i=0;i<n;i++){const xx=x+Math.cos(i/n*Math.PI*2)*ring*.2,zz=z+Math.sin(i/n*Math.PI*2)*ring*.2;if(canWalk(xx,zz))return [xx,zz];}}return null;}
- return {referencePlacements,referenceTrees,landscape,update,valid,canWalk,walkSpawn,setVisitorRadius,get visitorRadius(){return visitorRadius;},clearPerson,floor,contactFloor,terrainSupport,closeups,teaFrontage,grassFrontage,cartObservation,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>teaFrontage.setVisible(value,assetBatches),setGrassDetailVisible:value=>grassFrontage.setVisible(value,assetBatches),setCartDetailVisible:value=>cartObservation.setVisible(value,assetBatches),setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);landscape.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{sourceTrees:referenceTrees.length,trees:(placements.get('tree_bare')?.length||0)+(placements.get('tree_willow')?.length||0),buildings:buildingCount+landscape.stats.buildings+1,coreBuildings:buildingCount,landscape:landscape.stats,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
+ return {referencePlacements,referenceTrees,shoreVegetation,landscape,update,valid,canWalk,walkSpawn,setVisitorRadius,get visitorRadius(){return visitorRadius;},clearPerson,floor,contactFloor,terrainSupport,closeups,teaFrontage,grassFrontage,cartObservation,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>teaFrontage.setVisible(value,assetBatches),setGrassDetailVisible:value=>grassFrontage.setVisible(value,assetBatches),setCartDetailVisible:value=>cartObservation.setVisible(value,assetBatches),setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;shoreVegetation.setQuality(value);closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);landscape.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{sourceTrees:referenceTrees.length,trees:(placements.get('tree_bare')?.length||0)+(placements.get('tree_willow')?.length||0),buildings:buildingCount+landscape.stats.buildings+1,coreBuildings:buildingCount,landscape:landscape.stats,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
 }
