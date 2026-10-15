@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {Reflector} from '../vendor/Reflector.js';
+import {createReflectionReuse} from './reflection-reuse.js?v=still-reflection-v1';
 import {canalCenter,canalHalfWidth} from './landscape-layout.js?v=original-scroll-v1';
 
 const canalFunctions=/* glsl */`
@@ -140,10 +141,12 @@ export function createRiver(scene){
  // texture or an offscreen render, even when the main river is high quality.
  farMaterial.uniforms={...uniforms,reflectionEnabled:{value:0}};
  const farMesh=new T.Mesh(farGeometry,farMaterial);farMesh.name='汴河 · 延伸水道';farMesh.rotation.x=-Math.PI/2;farMesh.position.y=.04;farMesh.castShadow=false;scene.add(farMesh);
- let quality='standard',waveTime=0;
+ let quality='standard',waveTime=0,profiler=null,reflectionState=null,lightingState=[];
+ const reflectionReuse=createReflectionReuse();
  mesh.onBeforeRender=function(renderer,world,camera){
   if(quality==='low')return;
-  reflect.call(this,renderer,world,camera);
+  if(this.forceUpdate)reflectionReuse.invalidate();
+  const started=profiler?.begin();try{if(reflectionReuse.renderRequired(camera,this,reflectionState&&{frozen:reflectionState.frozen,values:[...lightingState,...reflectionState.values]}))reflect.call(this,renderer,world,camera);}catch(error){reflectionReuse.invalidate();throw error;}finally{profiler?.end('reflection',started);}
  };
  function update(dt,reduced,boats,lighting){
   if(!reduced)waveTime+=Math.max(0,Math.min(dt,.1));
@@ -151,12 +154,15 @@ export function createRiver(scene){
   boats.forEach((b,i)=>{if(i<5)uniforms.boats.value[i].set(b.g.position.x,b.g.position.z,b.g.scale.x,b.moving?1:0);});
   uniforms.sunDirection.value.copy(lighting.sun.position).sub(lighting.sun.target.position).normalize();
   uniforms.sunColor.value.copy(lighting.sun.color);
+  const s=lighting.settings;
+  lightingState=[lighting.dusk,s.sun,s.azimuth,s.lamps,waveTime];
  }
  function setQuality(value){
+  reflectionReuse.invalidate();
   quality=value;uniforms.reflectionEnabled.value=value==='low'?0:1;
   const resolution=value==='high'?1024:value==='low'?16:512;
   const target=mesh.getRenderTarget();if(target.width!==resolution)target.setSize(resolution,resolution);
   uniforms.reflectionTexel.value=1/resolution;
  }
- return{mesh,farMesh,material:mesh.material,update,setQuality,get time(){return waveTime;}};
+ return{setProfiler(value){profiler=value;},setReflectionState(value){reflectionState=value;},invalidateReflection:reflectionReuse.invalidate,setReflectionReuse:reflectionReuse.setEnabled,reflectionStats:reflectionReuse.stats,mesh,farMesh,material:mesh.material,update,setQuality,get time(){return waveTime;}};
 }
