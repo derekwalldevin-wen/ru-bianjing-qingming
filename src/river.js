@@ -1,6 +1,7 @@
 import * as T from 'three';
 import {Reflector} from '../vendor/Reflector.js';
 import {createReflectionReuse} from './reflection-reuse.js?v=still-reflection-v1';
+import {createReflectionVisibility} from './reflection-visibility.js?v=rural-approach-v1';
 import {canalCenter,canalHalfWidth} from './landscape-layout.js?v=original-scroll-v1';
 
 const canalFunctions=/* glsl */`
@@ -143,8 +144,10 @@ export function createRiver(scene){
  const farMesh=new T.Mesh(farGeometry,farMaterial);farMesh.name='汴河 · 延伸水道';farMesh.rotation.x=-Math.PI/2;farMesh.position.y=.04;farMesh.castShadow=false;scene.add(farMesh);
  let quality='standard',waveTime=0,profiler=null,reflectionState=null,lightingState=[];
  const reflectionReuse=createReflectionReuse();
+ const reflectionVisibility=createReflectionVisibility(mesh);
  mesh.onBeforeRender=function(renderer,world,camera){
   if(quality==='low')return;
+  if(!reflectionVisibility.required(camera,this.forceUpdate))return;
   if(this.forceUpdate)reflectionReuse.invalidate();
   const started=profiler?.begin();try{if(reflectionReuse.renderRequired(camera,this,reflectionState&&{frozen:reflectionState.frozen,values:[...lightingState,...reflectionState.values]}))reflect.call(this,renderer,world,camera);}catch(error){reflectionReuse.invalidate();throw error;}finally{profiler?.end('reflection',started);}
  };
@@ -164,5 +167,5 @@ export function createRiver(scene){
   const target=mesh.getRenderTarget();if(target.width!==resolution)target.setSize(resolution,resolution);
   uniforms.reflectionTexel.value=1/resolution;
  }
- return{setProfiler(value){profiler=value;},setReflectionState(value){reflectionState=value;},invalidateReflection:reflectionReuse.invalidate,setReflectionReuse:reflectionReuse.setEnabled,reflectionStats:reflectionReuse.stats,mesh,farMesh,material:mesh.material,update,setQuality,get time(){return waveTime;}};
+ return{setProfiler(value){profiler=value;},setReflectionState(value){reflectionState=value;},invalidateReflection:reflectionReuse.invalidate,setReflectionReuse:reflectionReuse.setEnabled,setReflectionCulling(value){reflectionVisibility.setEnabled(value);reflectionReuse.invalidate();},reflectionCulling:reflectionVisibility,reflectionStats:reflectionReuse.stats,mesh,farMesh,material:mesh.material,update,setQuality,get time(){return waveTime;}};
 }
