@@ -4,6 +4,7 @@ import {projectSurfaceUV} from './surface-textures.js?v=shore-art-v1';
 import {canalCenter,canalHalfWidth,bankHeight,landscapeBounds} from './landscape-layout.js?v=original-scroll-v1';
 import {buildPaintedGate} from './painted-gate.js?v=original-scroll-v1';
 import {paintedGate,streetRoute,ruralRoute} from './painting-layout.js?v=original-scroll-v1';
+import {createHorizonRidge} from './horizon-ridges.js?v=continuous-horizon-v1';
 import {installLandscapeInk} from './ink-landscape.js?v=original-scroll-v1';
 
 // Low-cost actual 3D city and mineral-colour mountains. No bitmap backdrop,
@@ -100,31 +101,7 @@ export function createLandscape(scene,{materials,colliders}){
  const mountainMaterials=[];let mountainTriangles=0;
  for(let layer=0;layer<3;layer++){
   const material=installLandscapeInk(new T.MeshStandardMaterial({vertexColors:true,roughness:1,fog:false}),{layer});mountainMaterials.push(material);inkMaterials.push(material);
-  const day=new T.Color(['#467d71','#53918e','#79a6a1'][layer]),foot=new T.Color(['#8d9b6c','#9fae88','#b4bfb0'][layer]);
-  const radius=[560,850,1150][layer],count=[25,29,33][layer],geometries=[];
-  for(let i=0;i<count;i++){
-   const angle=i/count*Math.PI*2,alongRiver=Math.abs(Math.sin(angle))<.20;
-   const r=radius+(rnd()-.5)*70,x=Math.cos(angle)*r,z=Math.sin(angle)*r*.77;
-   const height=(layer===0?35:layer===1?78:110)+rnd()*(layer===0?40:90),sx=(layer===0?65:110)+rnd()*65,sz=sx*(.58+rnd()*.27);
-   // River openings stay low so water can disappear naturally into haze.
-   const peakHeight=alongRiver?height*.33:height;
-   const rings=9,sectors=24,p=[],c=[],indices=[];
-   for(let row=0;row<rings;row++)for(let k=0;k<=sectors;k++){
-    const t=row/rings,a=k/sectors*Math.PI*2;
-    // Rounded shoulders with an offset summit replace the repeated cones.
-    // Angular lobes taper out at the crown, so it has no noisy overshoot.
-    const rad=Math.cos(t*Math.PI/2);
-    const ripple=1+.10*Math.sin(a*2+i)+.045*Math.sin(a*5+i*.71)*(1-t);
-    const rise=Math.pow(Math.sin(t*Math.PI/2),1.20)*(1+.045*Math.sin(a*3+i*.83)*(1-t));
-    const lean=t*t*(3-2*t);
-    const vx=x+Math.cos(a)*sx*rad*ripple+lean*sx*.12,vy=-.12+peakHeight*rise,vz=z+Math.sin(a)*sz*rad*ripple+lean*sz*.08;
-    p.push(vx,vy,vz);const col=foot.clone().lerp(day,T.MathUtils.smoothstep(t,.02,.70)).lerp(new T.Color(['#2f7188','#4f8898','#81a4ac'][layer]),T.MathUtils.smoothstep(t,.65,1)*.72);col.multiplyScalar(.89+.11*Math.sin(a*2.6+row*.5)**2);c.push(col.r,col.g,col.b);
-    if(row<rings-1&&k<sectors){const b=row*(sectors+1)+k;indices.push(b,b+sectors+1,b+1,b+1,b+sectors+1,b+sectors+2);}
-   }
-   const apex=p.length/3;p.push(x+sx*.12,peakHeight-.12,z+sz*.08);c.push(day.r,day.g,day.b);for(let k=0;k<sectors;k++){const b=(rings-1)*(sectors+1)+k;indices.push(b,apex,b+1);}
-   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('color',new T.Float32BufferAttribute(c,3));g.setIndex(indices);g.computeVertexNormals();geometries.push(g);
-  }
-  const merged=mergeGeometries(geometries);geometries.forEach(g=>g.dispose());const mesh=new T.Mesh(merged,material);mesh.name=`青绿远山 / ${layer+1}`;mesh.castShadow=false;mesh.receiveShadow=false;root.add(mesh);mountainTriangles+=merged.index.count/3;
+  const merged=createHorizonRidge(layer);const mesh=new T.Mesh(merged,material);mesh.name=`青绿远山 / ${layer+1}`;mesh.castShadow=false;mesh.receiveShadow=false;root.add(mesh);mountainTriangles+=merged.index.count/3;
  }
  let drawables=3,triangles=mountainTriangles;
  for(const {key,category,parts}of buckets.values()){

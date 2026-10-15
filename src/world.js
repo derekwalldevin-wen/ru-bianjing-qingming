@@ -16,7 +16,7 @@ import {createCloseupDetails,closeupFloor} from './closeup-details.js?v=original
 import {createFeaturedFrontage} from './featured-frontage.js';
 import {fitCartToGround} from './cart-grounding.js?v=original-scroll-v1';
 import {createTerrainSupport} from './terrain-support.js?v=original-scroll-v1';
-import {createLandscape} from './landscape.js?v=shore-art-v1';
+import {createLandscape} from './landscape.js?v=continuous-horizon-v1';
 import {placePaintedTreeGrove} from './painted-tree-grove.js?v=original-tree-grove-v1';
 import {expandedWalkBounds,bankHeight,canalCenter,canalHalfWidth} from './landscape-layout.js?v=original-scroll-v1';
 import {visibleRoofPlan,heroFrames,reframe,distanceToRoute,streetRoute,paintedGate} from './painting-layout.js?v=source-compound-v1';
