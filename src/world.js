@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {createSourceCompound,compoundIds} from './source-compound.js?v=source-compound-v1';
 import {mergeGeometries} from '../vendor/BufferGeometryUtils.js';
 import {createLighting} from './lighting.js?v=original-scroll-v1';
 import {createRiver} from './river.js?v=still-reflection-v1';
@@ -15,7 +16,7 @@ import {createTerrainSupport} from './terrain-support.js?v=original-scroll-v1';
 import {createLandscape} from './landscape.js?v=shore-art-v1';
 import {placePaintedTreeGrove} from './painted-tree-grove.js?v=original-tree-grove-v1';
 import {expandedWalkBounds,bankHeight,canalCenter,canalHalfWidth} from './landscape-layout.js?v=original-scroll-v1';
-import {visibleRoofPlan,heroFrames,reframe,distanceToRoute,streetRoute,paintedGate} from './painting-layout.js?v=original-scroll-v1';
+import {visibleRoofPlan,heroFrames,reframe,distanceToRoute,streetRoute,paintedGate} from './painting-layout.js?v=source-compound-v1';
 
 export const bridgeHeight=z=>.68+4.7*Math.max(0,1-(z/13.5)**2);
 export function createWorld(scene,kit){
@@ -91,16 +92,18 @@ export function createWorld(scene,kit){
  }
  // The four featured models follow the full scroll rather than the old sandbox.
  for(const [key,name,scale]of [['tea','building_workshop',1.17],['market','building_tea',1],['grass','building_thatch',1.04]]){
+  if(key==='market')continue;
   const frame=heroFrames[key],fromYaw=frame.from[1]>0?Math.PI:0;
   house(name,...frame.to,scale,fromYaw+frame.turn,{hero:true,id:frame.source,evidence:'original-visible',referenceModel:key,source:visibleRoofPlan.find(p=>p.id===frame.source).source,reference:visibleRoofPlan.find(p=>p.id===frame.source).reference,nativeAnchor:visibleRoofPlan.find(p=>p.id===frame.source).nativeAnchor});
  }
+ const sourceCompound=createSourceCompound(scene,m,colliders,kit);buildingCount+=sourceCompound.placements.length;referencePlacements.push(...sourceCompound.placements);
  // Gate walls are reserved before buildings are placed. Actual masonry is
  // constructed by the landscape builder with identical rectangular occupancy.
  for(const dz of [-8.6,8.6])collision(paintedGate.x,paintedGate.z+dz,9,5.5);
  for(const dz of [-26,26])collision(paintedGate.x,paintedGate.z+dz,2.25,12);
  collision(183,50.5,9.6,1.35);
  for(const [i,p]of visibleRoofPlan.entries()){
-  if(p.hero)continue;
+  if(p.hero||compoundIds.has(p.id))continue;
   const name=p.type==='thatch'?'building_thatch':p.type==='hall'?'building_tea':i%4===0?'building_workshop':'building_shop';
   const scale=Math.max(.58,Math.min(1.4,p.w/dimensions[name][0]));
   house(name,p.x,p.z,scale,p.yaw+(p.z>(p.x>70?40:Math.sign(p.z)*16.7)?Math.PI:0),{id:p.id,source:p.source,reference:p.reference,nativeAnchor:p.nativeAnchor,evidence:p.evidence});
@@ -224,9 +227,16 @@ export function createWorld(scene,kit){
    boats[0].worker.position.set(3.98,.665,.17);boatDetailVisible=true;
   }
   else closeups.replaceVisuals(candidate);
-  Object.assign(kit,candidate);enhancedKinds.add(kind);river.invalidateReflection();
+  Object.assign(kit,candidate);enhancedKinds.add(kind);if(compoundOriginal)rebuildCompoundOriginal();river.invalidateReflection();
   disposeAssetScene(previous,[scene,...Object.values(kit.scenes)]);
  }
+ let compoundOriginal=null;
+ function rebuildCompoundOriginal(){
+  const previous=compoundOriginal;compoundOriginal=new T.Group();compoundOriginal.name='QA/正店旧模型对照';
+  for(const [name,x,z,scale]of [['building_tea',243,24,1],['building_shop',252.22222222222223,-3.237426900584797,.9722222222222223],['building_shop',231.33333333333334,-2.980116959064329,1.4]]){const object=createAssetObject(kit,name);object.position.set(x,.62,z);object.scale.setScalar(scale);compoundOriginal.add(object);}
+  compoundOriginal.visible=previous?.visible??false;if(previous)scene.remove(previous);scene.add(compoundOriginal);
+ }
+ function setCompoundRefined(value){if(!compoundOriginal)rebuildCompoundOriginal();sourceCompound.root.visible=Boolean(value);compoundOriginal.visible=!value;river.invalidateReflection();}
  let profiler=null;
  function setProfiler(value){profiler=value;river.setProfiler(value);}
  function update(time,dt,reduced,night,camera,visitor){
@@ -245,5 +255,5 @@ export function createWorld(scene,kit){
  function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:closeupFloor(x,z,Math.abs(x)>104?(terrainSupport.height(x,z)??.62):.62);}
  function canWalk(x,z){return valid(x,z,visitorStaticRadius)&&crowd.motion.validVisitor(x,z,visitorRadius);}
  function walkSpawn(x,z){for(let ring=0;ring<16;ring++){const n=ring?ring*8:1;for(let i=0;i<n;i++){const xx=x+Math.cos(i/n*Math.PI*2)*ring*.2,zz=z+Math.sin(i/n*Math.PI*2)*ring*.2;if(canWalk(xx,zz))return [xx,zz];}}return null;}
- return {setProfiler,referencePlacements,referenceTrees,shoreVegetation,landscape,update,valid,canWalk,walkSpawn,setVisitorRadius,get visitorRadius(){return visitorRadius;},clearPerson,floor,contactFloor,terrainSupport,closeups,teaFrontage,grassFrontage,cartObservation,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>{river.invalidateReflection();return teaFrontage.setVisible(value,assetBatches);},setGrassDetailVisible:value=>{river.invalidateReflection();return grassFrontage.setVisible(value,assetBatches);},setCartDetailVisible:value=>{river.invalidateReflection();return cartObservation.setVisible(value,assetBatches);},setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;shoreVegetation.setQuality(value);closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);landscape.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{sourceTrees:referenceTrees.length,trees:(placements.get('tree_bare')?.length||0)+(placements.get('tree_willow')?.length||0),buildings:buildingCount+landscape.stats.buildings+1,coreBuildings:buildingCount,landscape:landscape.stats,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
+ return {sourceCompound,setCompoundRefined,setProfiler,referencePlacements,referenceTrees,shoreVegetation,landscape,update,valid,canWalk,walkSpawn,setVisitorRadius,get visitorRadius(){return visitorRadius;},clearPerson,floor,contactFloor,terrainSupport,closeups,teaFrontage,grassFrontage,cartObservation,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>{river.invalidateReflection();return teaFrontage.setVisible(value,assetBatches);},setGrassDetailVisible:value=>{river.invalidateReflection();return grassFrontage.setVisible(value,assetBatches);},setCartDetailVisible:value=>{river.invalidateReflection();return cartObservation.setVisible(value,assetBatches);},setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;shoreVegetation.setQuality(value);closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);landscape.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{sourceCompound:sourceCompound.stats,sourceTrees:referenceTrees.length,trees:(placements.get('tree_bare')?.length||0)+(placements.get('tree_willow')?.length||0),buildings:buildingCount+landscape.stats.buildings+1,coreBuildings:buildingCount,landscape:landscape.stats,people:persons.length+boats.length+sourceCompound.stats.staticPeople,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
 }
