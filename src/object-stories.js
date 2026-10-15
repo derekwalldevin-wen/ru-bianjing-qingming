@@ -23,12 +23,16 @@ export const objectStories={
 };
 export const storyKey=o=>o?.id??({0:'bridge',1:'boat',3:'market'}[o?.place]);
 
+objectStories['outer-gabled-compound']={title:'屋檐下的一段路',speaker:'行路人 · 想象片段',opening:'“抬头看屋脊，低头看门前。房子挨着路，路也把来往的人带到檐下。”',choices:[
+ {label:'沿山面看木构',text:'从屋顶的三角山面看向横梁，再顺瓦垄找到低侧檐。原画能核对高低屋面的关系；具体木构接法、门窗分格与背面是三维演绎。',note:'回到原画，找出城外前景的大屋面和它旁边较低的一片屋檐。'},
+ {label:'看门前留白',text:'从门槛看向道路，观察房屋、树木与行人之间留下的空隙。三维中为漫游留出的距离不是对宋代街宽的测绘。',note:'比较城内铺面和城外屋舍：建筑之间的空隙有什么不同？'}]};
+
 export function createObjectStoryReader({root,archive,exit,storage}){
  const find=id=>root.querySelector('#'+id),done=new Set();let key=null,observation=null;
  try{const saved=JSON.parse(storage.getItem('bianjing-story-notes')||'[]');if(Array.isArray(saved))for(const id of saved)if(typeof id==='string'&&Object.hasOwn(objectStories,id))done.add(id);}catch{}
  function count(){find('story-count').textContent=`随手游记 ${done.size} / ${Object.keys(objectStories).length}`;}
  function remember(){if(!key)return;done.add(key);try{storage.setItem('bianjing-story-notes',JSON.stringify([...done]));}catch{}count();find('story-remember').textContent='已记在游记里';find('story-remember').disabled=true;}
- find('story-close').onclick=exit;find('story-archive').onclick=()=>observation&&archive(observation.place);find('story-remember').onclick=remember;
+ find('story-close').onclick=exit;find('story-archive').onclick=()=>observation&&archive(observation.place,observation);find('story-remember').onclick=remember;
  function open(o){
   const id=storyKey(o),story=objectStories[id];if(!story)return false;key=id;observation=o;
   find('story-title').textContent=story.title;find('story-speaker').textContent=story.speaker;find('story-text').textContent=story.opening;find('story-note').textContent='选一个线索，带着问题细看画中物件。';
