@@ -2,7 +2,7 @@ import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {createDirectionController} from '../vendor/cheoma-heading.js';
 import {reframe} from './painting-layout.js?v=original-scroll-v1';
-import {places,tour} from './content.js?v=original-scroll-v1';
+import {places,tour} from './content.js?v=city-street-v1';
 import {createWalkMotion} from './walk-motion.js';
 import {createSceneTransition} from './scene-transition.js';
 import {observations} from './observations.js?v=gate-neighborhood-v1';
