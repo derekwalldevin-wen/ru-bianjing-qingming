@@ -6,29 +6,46 @@ import {places,tour} from './content.js?v=original-scroll-v1';
 import {createWalkMotion} from './walk-motion.js';
 import {createSceneTransition} from './scene-transition.js';
 import {observations} from './observations.js?v=original-scroll-v1';
+import {createFollowCamera} from './follow-camera.js?v=shore-action-v1';
 export {observations} from './observations.js?v=original-scroll-v1';
 
 export const bridgeMarketPath=[[46,21,56],[87,40,33],[156,40,41],[223,35,49],reframe([-48,11,1],'market')];
 
-export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>{},onTransition=()=>{},onError=()=>{}){
+export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>{},onTransition=()=>{},onError=()=>{},{walkView='first',clipCamera}={}){
  const controls=new OrbitControls(camera,canvas);
  Object.assign(controls,{enableDamping:true,dampingFactor:.065,minDistance:8,maxDistance:430,maxPolarAngle:Math.PI*.475,minPolarAngle:.12,panSpeed:.6,zoomSpeed:.7});controls.target.set(0,2,0);
  const motion=createWalkMotion(),keys=new Set(),facing=new T.Vector3(),look=new T.Vector3();
  const lookController=createDirectionController({maxYawSpeed:Math.PI*2,maxYawAcceleration:Math.PI*10});
+ const visitorPosition=new T.Vector3(),visitorForward=new T.Vector3(),follow=createFollowCamera(camera,clipCamera);
+ Object.defineProperty(visitorPosition,'radius',{get:()=>world.visitorRadius??.32});
+ let view=walkView==='follow'?'follow':'first',bodyYaw=0,speed=0;
  let mode='overview',yaw=0,pitch=0,drag=null,reduced=false,index=0,tourIndex=0,tourTime=0,paused=false,enabled=true,detailReturn=null;
- const clear=()=>{keys.clear();drag=null;motion.reset();};
+ const clear=()=>{keys.clear();drag=null;motion.reset();speed=0;};
  const syncControls=()=>{controls.enabled=enabled&&mode==='overview'&&!transition.active;controls.enableDamping=!reduced;controls.minDistance=detailReturn? .65:8;};
  const emitTour=()=>onTour(tourIndex,Math.min(1,tourTime/tour[tourIndex].duration),paused);
- function apply(pose){camera.position.fromArray(pose.position);controls.target.fromArray(pose.look);if(pose.mode==='walk'){camera.rotation.order='YXZ';camera.rotation.set(pose.pitch,pose.yaw,0);}else camera.lookAt(controls.target);}
+ function renderWalk(dt=0,snap=false){if(view==='follow')follow.update(visitorPosition,yaw,pitch,dt,{snap,reduced});else{camera.position.copy(visitorPosition);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);}}
+ function apply(pose){
+  camera.position.fromArray(pose.position);controls.target.fromArray(pose.look);
+  if(pose.mode==='walk'){
+   view=pose.walkView??view;visitorPosition.fromArray(pose.visitorPosition??pose.position);yaw=pose.yaw;pitch=pose.pitch;bodyYaw=pose.bodyYaw??yaw+Math.PI;
+   if(pose.visitorPosition){camera.lookAt(controls.target);}else renderWalk(0,true);
+  }else camera.lookAt(controls.target);
+ }
  function commit(destination){
   clear();index=destination.index;mode=destination.mode;
   if(mode==='walk'){yaw=destination.yaw;pitch=destination.pitch;}
   if(mode==='tour'){tourIndex=destination.tourIndex;tourTime=destination.tourTime??0;paused=destination.paused??false;lookController.reset(camera.getWorldDirection(facing));emitTour();}
   syncControls();onChange(mode,index);
  }
- function resolveDestination(dest){if(dest.mode!=='walk')return dest;const [x,,z]=dest.position,spawn=world.walkSpawn?.(x,z)??(world.walkSpawn?null:[x,z]);if(!spawn){onError('这里暂时没有安全落点，已保留原位置。');return null;}return {...dest,position:[spawn[0],world.floor(...spawn)+1.65,spawn[1]]};}
+ function resolveDestination(dest){if(dest.mode!=='walk')return dest;const [x,,z]=dest.visitorPosition??dest.position,spawn=world.walkSpawn?.(x,z)??(world.walkSpawn?null:[x,z]);if(!spawn){onError('这里暂时没有安全落点，已保留原位置。');return null;}
+  const position=[spawn[0],world.floor(...spawn)+1.65,spawn[1]];
+  // Exact inspection return is retained when the physical landing is still
+  // clear. If people now occupy it, reposition both player and camera safely.
+  if(dest.visitorPosition&&Math.hypot(spawn[0]-x,spawn[1]-z)<1e-7)return dest;
+  const {visitorPosition:discard,...rest}=dest;return {...rest,position};
+ }
  const transition=createSceneTransition({apply,commit,resolve:resolveDestination,onState:state=>{syncControls();onTransition(state);}});
- function snapshot(){return {position:camera.position.toArray(),look:camera.getWorldDirection(facing).multiplyScalar(15).add(camera.position).toArray(),index,mode,yaw,pitch,tourIndex,tourTime,paused};}
+ function snapshot(){return {position:camera.position.toArray(),look:camera.getWorldDirection(facing).multiplyScalar(15).add(camera.position).toArray(),index,mode,yaw,pitch,tourIndex,tourTime,paused,...(mode==='walk'?{visitorPosition:visitorPosition.toArray(),walkView:view,bodyYaw}:{})};}
  function destination(i,nextMode){
   if(!places[i])return null;const p=places[i];
   if(nextMode==='walk'){
@@ -53,6 +70,7 @@ export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>
  function go(i,immediate=false){detailReturn=null;return request(destination(i,mode==='walk'?'walk':'overview'),immediate);}
  function overview(){detailReturn=null;return request(destination(transition.pending?.index??index,'overview'));}
  function walk(i=transition.pending?.index??index){detailReturn=null;return request(destination(i,'walk'));}
+ function locate(i){if(!enabled||mode!=='walk'||transition.active||detailReturn||!places[i])return false;if(index!==i){index=i;onChange(mode,index);}return true;}
  function startTour(i=0){if(!tour[i])return false;detailReturn=null;const t=tour[i];return request({index:t.place,mode:'tour',position:t.from,look:t.look,tourIndex:i,tourTime:0,paused:false},false,false);}
  function inspect(observation){if(!observations.includes(observation))return false;if(!detailReturn)detailReturn=snapshot();const compact=canvas.clientWidth<=650;return request({index:observation.place,mode:'overview',position:compact&&observation.mobileView?observation.mobileView:observation.view,look:compact&&observation.mobileLook?observation.mobileLook:observation.look},false,false);}
  function closeInspection(){if(!detailReturn)return;const returnTo=detailReturn;detailReturn=null;request(returnTo,false,false);}
@@ -72,7 +90,11 @@ export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>
   if(mode==='overview'){controls.update();controls.target.x=T.MathUtils.clamp(controls.target.x,-338,338);controls.target.z=T.MathUtils.clamp(controls.target.z,-146,146);controls.target.y=T.MathUtils.clamp(controls.target.y,0,12);return;}
   if(mode==='walk'){
    const forward=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0),side=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0);
-   const {x,z}=motion.step({x:camera.position.x,z:camera.position.z,forward,side,yaw,fast:keys.has('ShiftLeft'),dt,allowed:world.canWalk||world.valid});camera.position.set(x,world.floor(x,z)+1.65,z);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);return;
+   const oldX=visitorPosition.x,oldZ=visitorPosition.z;
+   const {x,z}=motion.step({x:oldX,z:oldZ,forward,side,yaw,fast:keys.has('ShiftLeft'),dt,allowed:world.canWalk||world.valid});visitorPosition.set(x,world.floor(x,z)+1.65,z);
+   const distance=Math.hypot(x-oldX,z-oldZ);speed=dt>0?distance/Math.min(.1,dt):0;
+   if(distance>1e-6){const desired=Math.atan2(x-oldX,z-oldZ),turn=Math.atan2(Math.sin(desired-bodyYaw),Math.cos(desired-bodyYaw));bodyYaw+=T.MathUtils.clamp(turn,-Math.max(0,dt)*9,Math.max(0,dt)*9);}
+   renderWalk(dt);return;
   }
   if(paused){emitTour();return;}
   const chapter=tour[tourIndex];tourTime+=dt;const progress=Math.min(1,tourTime/chapter.duration);
@@ -80,5 +102,6 @@ export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>
   look.fromArray(chapter.look).sub(camera.position).normalize();const direction=reduced?look:lookController.step(look,dt);camera.lookAt(camera.position.x+direction.x,camera.position.y+direction.y,camera.position.z+direction.z);emitTour();
   if(progress>=1&&!paused){if(tourIndex<tour.length-1)startTour(tourIndex+1);else{paused=true;emitTour();}}
  }
- return {go,walk,overview,startTour,inspect,closeInspection,snapshot,escape,cancel,skip,update,controls,keys,get mode(){return mode;},get index(){return index;},get transitioning(){return transition.active;},get pending(){return transition.pending;},get inspecting(){return !!detailReturn;},setReduced(value){reduced=value;transition.setReduced(value);syncControls();},setEnabled(value){enabled=value;clear();syncControls();},togglePause(){if(transition.active&&transition.pending?.mode==='tour'){const target={...transition.pending,paused:!transition.pending.paused};transition.request(target,{immediate:reduced});return;}paused=!paused;emitTour();},nextTour(){startTour(((transition.pending?.tourIndex??tourIndex)+1)%tour.length);}};
+ function setWalkView(value){if(!['first','follow'].includes(value)||transition.active||detailReturn)return false;view=value;clear();if(mode==='walk')renderWalk(0,true);return true;}
+ return {stop:clear,go,walk,locate,overview,startTour,inspect,closeInspection,snapshot,escape,cancel,skip,update,controls,keys,setWalkView,get walkView(){return view;},get visitorPosition(){return visitorPosition;},get visitorForward(){return visitorForward.set(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));},get visitorState(){return {position:visitorPosition,yaw:bodyYaw,speed,visible:mode==='walk'&&view==='follow'&&!transition.active&&!detailReturn};},get mode(){return mode;},get index(){return index;},get transitioning(){return transition.active;},get pending(){return transition.pending;},get inspecting(){return !!detailReturn;},setReduced(value){reduced=value;transition.setReduced(value);syncControls();},setEnabled(value){enabled=value;clear();syncControls();},togglePause(){if(transition.active&&transition.pending?.mode==='tour'){const target={...transition.pending,paused:!transition.pending.paused};transition.request(target,{immediate:reduced});return;}paused=!paused;emitTour();},nextTour(){startTour(((transition.pending?.tourIndex??tourIndex)+1)%tour.length);}};
 }

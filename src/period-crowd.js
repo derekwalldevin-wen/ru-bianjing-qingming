@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {templateParts} from './period-assets.js';
-import {createCrowdMotion} from './crowd-motion.js';
+import {createCrowdMotion} from './crowd-motion.js?v=visible-traveller-v1';
 import {sampleVendorGesture,vendorGestureTarget,advanceVendorGestureWeight,VENDOR_GESTURE_RADIUS,VENDOR_GESTURE_SOURCE_SHA256} from './vendor-gesture.js';
 import {createVendorGestureRig,vendorJoint} from './vendor-gesture-rig.js';
 import {chooseVendorGestureActor} from './vendor-gesture-actor.js?v=original-scroll-v1';

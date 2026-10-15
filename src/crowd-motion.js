@@ -11,7 +11,7 @@ export function segmentDistanceSquared(px,pz,ax,az,bx,bz){
 export function createCrowdMotion(people,{radiusFor,clear,floor}){
  const agents=[];
  function separated(x,z,r,except=null,visitor=null){
-  if(visitor&&Math.hypot(x-visitor.x,z-visitor.z)<r+.32+PERSONAL_GAP)return false;
+  if(visitor&&Math.hypot(x-visitor.x,z-visitor.z)<r+(visitor.radius??.32)+PERSONAL_GAP)return false;
   return agents.every(a=>a===except||Math.hypot(x-a.x,z-a.z)>=r+a.radius+PERSONAL_GAP);
  }
  // Deterministic nearest-free placement. Body, sleeves and carried baskets are
@@ -31,7 +31,7 @@ export function createCrowdMotion(people,{radiusFor,clear,floor}){
  }
  function canStep(a,x,z,visitor){
   if(!clear(x,z,a.radius,a.person))return false;
-  if(visitor&&segmentDistanceSquared(visitor.x,visitor.z,a.x,a.z,x,z)<(a.radius+.32+PERSONAL_GAP)**2)return false;
+  if(visitor&&segmentDistanceSquared(visitor.x,visitor.z,a.x,a.z,x,z)<(a.radius+(visitor.radius??.32)+PERSONAL_GAP)**2)return false;
   return agents.every(b=>b===a||segmentDistanceSquared(b.x,b.z,a.x,a.z,x,z)>=(a.radius+b.radius+PERSONAL_GAP)**2);
  }
  function update(dt,time,visitor){

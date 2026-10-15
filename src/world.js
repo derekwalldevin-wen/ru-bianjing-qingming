@@ -5,13 +5,14 @@ import {createRiver} from './river.js?v=original-scroll-v1';
 import {applySurfaceTextures,projectSurfaceUV} from './surface-textures.js';
 import {createDetailBuilder} from './details.js?v=original-scroll-v1';
 import {createAssetInstances,createAssetObject,prepareAssetKit,disposeAssetScene,replaceObjectVisual} from './period-assets.js';
-import {createPeriodCrowd} from './period-crowd.js?v=original-scroll-v1';
-import {circleHitsBox} from './crowd-motion.js';
+import {createPeriodCrowd} from './period-crowd.js?v=visible-traveller-v1';
+import {circleHitsBox} from './crowd-motion.js?v=visible-traveller-v1';
 import {createCloseupDetails,closeupFloor} from './closeup-details.js?v=original-scroll-v1';
 import {createFeaturedFrontage} from './featured-frontage.js';
 import {fitCartToGround} from './cart-grounding.js?v=original-scroll-v1';
 import {createTerrainSupport} from './terrain-support.js?v=original-scroll-v1';
 import {createLandscape} from './landscape.js?v=painterly-relief-v1';
+import {placePaintedTreeGrove} from './painted-tree-grove.js?v=original-tree-grove-v1';
 import {expandedWalkBounds,bankHeight,canalCenter,canalHalfWidth} from './landscape-layout.js?v=original-scroll-v1';
 import {visibleRoofPlan,heroFrames,reframe,distanceToRoute,streetRoute,paintedGate} from './painting-layout.js?v=original-scroll-v1';
 
@@ -138,7 +139,8 @@ export function createWorld(scene,kit){
  for(const [key,point,text]of [['tea',[25,0,20.5],'茶'],['market',[-26,0,-20],'酒'],['carts',[55,0,-20.5],'布帛'],['grass',[-64,0,-20.5],'食']]){const p=reframe(point,key);sign(p[0],p[2],text);}
  for(const [x,z] of [heroFrames.tea.to,heroFrames.market.to,heroFrames.carts.to,heroFrames.grass.to])collision(x-.48,z,.08,.08);
  [[-51,12.3],[-12,-12.8],[39,12.4],[74,-12.5],[-84,12.7],[13,35],[-49,-36],[5,54],[-70,37],[50,-37]].forEach(([x,z],i)=>place(i%3===0?'tree_bare':'tree_willow',x,z,{scale:.82+rnd()*.27,yaw:rnd()*6.28}));
- for(const [i,[x,z]]of [[-275,52],[-266,49],[-259,48],[-248,58],[-233,51],[-225,42],[-214,39],[-197,52],[-181,56],[-161,43],[-143,49],[185,14],[189,6],[194,-4],[211,15],[216,19],[220,26],[225,63],[233,68],[244,82],[275,79],[305,75]].entries())place('tree_bare',x,z,{scale:1.1+(i%3)*.18,yaw:rnd()*6.28});
+ for(const [i,[x,z]]of [[-275,52],[-266,49],[-259,48],[-248,58],[-233,51],[-225,42],[-214,39],[-197,52],[-181,56],[-161,43],[-143,49],[185,14],[189,6],[194,-4],[211,15],[216,19],[220,26],[225,63],[233,68],[244,82],[275,79],[305,75]].entries()){const yaw=rnd()*6.28;if(i>=11)place('tree_bare',x,z,{scale:1.1+(i%3)*.18,yaw});}
+ const referenceTrees=placePaintedTreeGrove({kit,colliders,place});
  place('cart_ox',...heroFrames.carts.to,{yaw:Math.PI/2});collision(...heroFrames.carts.to,3.2,1.12);place('cart_hand',-57,18.3,{yaw:-Math.PI/2});collision(-57,18.3,1.8,.85);place('cart_hand',-35,-18.4,{yaw:Math.PI/2,scale:.9});collision(-35,-18.4,1.6,.8);place('cart_ox',77,18.4,{yaw:-Math.PI/2,scale:.92});collision(77,18.4,3,1.1);
  const river=createRiver(scene);
  function boat(name,x,z,size,moving=false){const g=createAssetObject(kit,name);g.position.set(x,.17,z);g.scale.setScalar(size);scene.add(g);const worker=createAssetObject(kit,'person_boatman');worker.position.set(name==='boat_cargo'?3.6:2.1,.75,.15);worker.rotation.y=Math.PI/2;g.add(worker);boats.push({g,worker,name,x,z,moving,phase:rnd()*6});}
@@ -162,7 +164,7 @@ export function createWorld(scene,kit){
     // An enhanced hull, cart shaft or trunk cannot grow into a free walkway.
     for(const x of [proxy[0][0],proxy[1][0]])for(const z of [proxy[0][1],proxy[1][1]])bounds.expandByPoint(vertex.set(x,0,z).applyMatrix4(dummy.matrix));
    }else root.traverse(o=>{if(!o.isMesh)return;const a=o.geometry.attributes.position;for(let i=0;i<a.count;i++){vertex.fromBufferAttribute(a,i).applyMatrix4(o.matrixWorld);if(vertex.y>2.1)continue;vertex.applyMatrix4(dummy.matrix);bounds.expandByPoint(vertex);}});
-   if(!bounds.isEmpty())collision((bounds.min.x+bounds.max.x)/2,(bounds.min.z+bounds.max.z)/2,(bounds.max.x-bounds.min.x)/2+.03,(bounds.max.z-bounds.min.z)/2+.03);
+   if(!bounds.isEmpty()){collision((bounds.min.x+bounds.max.x)/2,(bounds.min.z+bounds.max.z)/2,(bounds.max.x-bounds.min.x)/2+.03,(bounds.max.z-bounds.min.z)/2+.03);if(item.evidence==='original-visible-trunk')Object.assign(colliders.at(-1),{treeTrunk:true,sourceId:item.id});}
   }
  }
  for(const p of persons){if(!p.bridge&&p.z<0&&p.activity==='walk'){p.x=260+p.x*.4;p.z=46+(Math.abs(p.z)-14.2);p.start=223;p.end=299;p.offset=p.x-p.start;p.streetZone='city';}else if(!p.bridge&&p.activity==='stand'&&p.x>-70&&p.x<50&&p.z<-17){const q=reframe([p.x,0,p.z],'market');p.x=q[0];p.z=q[2];p.yaw+=heroFrames.market.turn;p.streetZone='city';}}
@@ -224,9 +226,11 @@ export function createWorld(scene,kit){
   disposeAssetScene(previous,[scene,...Object.values(kit.scenes)]);
  }
  function update(time,dt,reduced,night,camera,visitor){closeups.update(camera);lighting.update(time,dt,night,reduced,camera);landscape.update(lighting.dusk);for(const b of boats){b.g.position.y=.17+(reduced?0:Math.sin(time*.6+b.phase)*.025);b.g.position.x=b.moving&&!reduced?((b.x+time*.36+108)%216)-108:b.x;}river.update(dt,reduced,boats,lighting);crowd.update(time,reduced,camera,visitor);for(const f of flags)f.mesh.rotation.y=reduced?0:Math.sin(time*.7+f.x)*.025;}
- function valid(x,z){if(Math.abs(x)>345||Math.abs(z)>150)return false;if(Math.abs(x)>104?!expandedWalkBounds(x,z):Math.abs(z)<11.8&&Math.abs(x)>2.65)return false;return !colliders.some(c=>Math.abs(x-c.x)<c.w+.28&&Math.abs(z-c.z)<c.d+.28);}
+ let visitorRadius=.32,visitorStaticRadius=.28;
+ function setVisitorRadius(value){if(!Number.isFinite(value)||value<.28||value>1)throw new Error('Invalid visitor body radius');visitorRadius=visitorStaticRadius=value;}
+ function valid(x,z,r=.28){if(Math.abs(x)>345||Math.abs(z)>150)return false;if(Math.abs(x)>104?!expandedWalkBounds(x,z):Math.abs(z)<11.8&&Math.abs(x)>2.93-r)return false;return !colliders.some(c=>Math.abs(x-c.x)<c.w+r&&Math.abs(z-c.z)<c.d+r);}
  function floor(x,z){return Math.abs(x)<3.2&&Math.abs(z)<13.5?bridgeHeight(z)+.12:closeupFloor(x,z,Math.abs(x)>104?(terrainSupport.height(x,z)??.62):.62);}
- function canWalk(x,z){return valid(x,z)&&crowd.motion.validVisitor(x,z);}
+ function canWalk(x,z){return valid(x,z,visitorStaticRadius)&&crowd.motion.validVisitor(x,z,visitorRadius);}
  function walkSpawn(x,z){for(let ring=0;ring<16;ring++){const n=ring?ring*8:1;for(let i=0;i<n;i++){const xx=x+Math.cos(i/n*Math.PI*2)*ring*.2,zz=z+Math.sin(i/n*Math.PI*2)*ring*.2;if(canWalk(xx,zz))return [xx,zz];}}return null;}
- return {referencePlacements,landscape,update,valid,canWalk,walkSpawn,clearPerson,floor,contactFloor,terrainSupport,closeups,teaFrontage,grassFrontage,cartObservation,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>teaFrontage.setVisible(value,assetBatches),setGrassDetailVisible:value=>grassFrontage.setVisible(value,assetBatches),setCartDetailVisible:value=>cartObservation.setVisible(value,assetBatches),setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);landscape.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{buildings:buildingCount+landscape.stats.buildings+1,coreBuildings:buildingCount,landscape:landscape.stats,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
+ return {referencePlacements,referenceTrees,landscape,update,valid,canWalk,walkSpawn,setVisitorRadius,get visitorRadius(){return visitorRadius;},clearPerson,floor,contactFloor,terrainSupport,closeups,teaFrontage,grassFrontage,cartObservation,sun:lighting.sun,lighting,river,surfaces,kit,crowd,placements,boats,colliders,assetBatches,bridgeObject,enhancedKinds,upgradeAsset,setBoatDetailVisible,setTeaDetailVisible:value=>teaFrontage.setVisible(value,assetBatches),setGrassDetailVisible:value=>grassFrontage.setVisible(value,assetBatches),setCartDetailVisible:value=>cartObservation.setVisible(value,assetBatches),setLighting:lighting.configure,setQuality(value,maxAnisotropy){assetQuality=value;anisotropy=maxAnisotropy;closeups.setQuality(value);crowd.setQuality(value);lighting.setQuality(value);river.setQuality(value);landscape.setQuality(value);surfaces.setQuality(value,maxAnisotropy);kit.setQuality(value,maxAnisotropy);},counts:{sourceTrees:referenceTrees.length,trees:(placements.get('tree_bare')?.length||0)+(placements.get('tree_willow')?.length||0),buildings:buildingCount+landscape.stats.buildings+1,coreBuildings:buildingCount,landscape:landscape.stats,people:persons.length+boats.length,boats:boats.length,stalls:stallLocations.length+2,vehicles:4,characterTypes:6,assetTemplates:kit.templates.size,style:'原画依据 · Blender精修'}};
 }
