@@ -65,17 +65,29 @@ export function applySurfaceTextures(materials){
  }
  apply('road','earth',3.4,.68);apply('ground','earth',4.5,.52);
  for(const key of ['road','ground']){
-  const material=materials[key];material.userData.shoreEarth='shore-earth-v1';material.customProgramCacheKey=()=> 'shore-earth-v1';
+  const material=materials[key];material.userData.shoreEarth='painted-earth-distance-v1';material.customProgramCacheKey=()=> 'painted-earth-distance-v1';
   material.onBeforeCompile=shader=>{
    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vEarthWorld;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvEarthWorld=(modelMatrix*vec4(transformed,1.0)).xyz;');
    shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vEarthWorld;').replace('#include <color_fragment>',`#include <color_fragment>
+    // Keep close soil legible, then lose its repeating colour and normal grain
+    // into a continuous earth wash. This does not blur geometry or road edges.
+    float earthViewDistance=length(cameraPosition.xz-vEarthWorld.xz);
+    float earthMicroDetail=1.0-smoothstep(38.0,160.0,earthViewDistance)*.94;
+    vec3 earthMean=diffuse*vec3(.69);
+    #if defined(USE_COLOR_ALPHA)
+     earthMean*=vColor.rgb;
+    #elif defined(USE_COLOR)
+     earthMean*=vColor;
+    #endif
+    diffuseColor.rgb=mix(earthMean,diffuseColor.rgb,earthMicroDetail);
     vec2 earthPoint=vEarthWorld.xz;
     float earthWash=sin(earthPoint.x*.137+sin(earthPoint.y*.31))*sin(earthPoint.y*.193+sin(earthPoint.x*.071));
     float canalT=max(abs(earthPoint.x)-135.0,0.0);
     float canalLine=-(canalT*canalT/(canalT+180.0)*.39+sin(canalT/130.0)*canalT/(canalT+90.0)*26.0);
     float bankDistance=abs(earthPoint.y-canalLine)-(10.25+max(abs(earthPoint.x)-145.0,0.0)*.027);
     float dampBank=1.0-smoothstep(.6,3.8,bankDistance);
-    diffuseColor.rgb*=vec3(.96+earthWash*.065,.97+earthWash*.04,.98-earthWash*.012)*mix(vec3(1.0),vec3(.83,.86,.81),dampBank*.48);`);
+    diffuseColor.rgb*=vec3(.96+earthWash*.065,.97+earthWash*.04,.98-earthWash*.012)*mix(vec3(1.0),vec3(.83,.86,.81),dampBank*.48);`)
+    .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nnormal=normalize(mix(nonPerturbedNormal,normal,mix(.12,1.0,earthMicroDetail)));');
   };
  }
  apply('paving','paving',3.6,.8);apply('stone','plaster',1.8,.7);
