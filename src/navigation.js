@@ -5,9 +5,9 @@ import {reframe} from './painting-layout.js?v=original-scroll-v1';
 import {places,tour} from './content.js?v=rural-approach-v1';
 import {createWalkMotion} from './walk-motion.js';
 import {createSceneTransition} from './scene-transition.js';
-import {observations} from './observations.js?v=gate-neighborhood-v1';
+import {observations} from './observations.js?v=source-village-v1';
 import {createFollowCamera} from './follow-camera.js?v=shore-action-v1';
-export {observations} from './observations.js?v=gate-neighborhood-v1';
+export {observations} from './observations.js?v=source-village-v1';
 
 export const bridgeMarketPath=[[46,21,56],[87,40,33],[156,40,41],[223,35,49],reframe([-48,11,1],'market')];
 

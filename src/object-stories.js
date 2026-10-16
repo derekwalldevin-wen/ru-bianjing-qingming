@@ -43,3 +43,5 @@ export function createObjectStoryReader({root,archive,exit,storage}){
  }
  return {open,close(){root.classList.add('hidden');delete root.dataset.story;observation=null;key=null;}};
 }
+
+objectStories['source-village']={title:'草檐下的一扇门',speaker:'乡路行人 · 想象片段',opening:'“门前留一条路，檐下留一点阴凉。行人走近，才看见草束与木纹的细处。”',choices:[{label:'看草檐与木构',text:'看草顶的厚度、参差边缘和山面横梁，再比较前后屋顶怎样相叠。具体捆扎和接法属于三维演绎。',note:'回到原画，沿屋脊找到较低的草檐，比较它与树群的遮挡。'},{label:'看门前的一线空隙',text:'门框、门扉与门槛各有厚度。近看时可以开合门扉，观察枢轴与檐下阴影；这项动作是场景演绎。',note:'原画能核对村舍轮廓与门前留白，不能据此认定开门时刻或室内用途。'}]};
