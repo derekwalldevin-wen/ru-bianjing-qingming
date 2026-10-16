@@ -19,5 +19,5 @@ export function createShoreRopeTask({onChange=()=>{},onProgress=()=>{}}={}){
   setProgress(phase==='gathering'?.55*eased:.55+.45*eased);
   if(t===1)change(phase==='gathering'?'coil':'done');
  }
- return {activate,update,reset,get phase(){return phase;},get progress(){return progress;},get fraction(){return ['gathering','coiling'].includes(phase)?Math.min(1,elapsed/(phase==='gathering'?2.0:2.4)):phase==='coil'||phase==='done'?1:0;},get busy(){return phase==='gathering'||phase==='coiling';}};
+ return {activate,update,reset,restoreCompleted(){setProgress(1);change('done');},get phase(){return phase;},get progress(){return progress;},get fraction(){return ['gathering','coiling'].includes(phase)?Math.min(1,elapsed/(phase==='gathering'?2.0:2.4)):phase==='coil'||phase==='done'?1:0;},get busy(){return phase==='gathering'||phase==='coiling';}};
 }

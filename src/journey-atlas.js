@@ -1,5 +1,5 @@
 // A chapter book, deliberately separate from geographic reconstruction.
-export function createJourneyAtlas({dialog,places,go,archive,suspend,visited}){
+export function createJourneyAtlas({dialog,places,go,archive,suspend,visited,note=()=>''}){
  const find=id=>dialog.querySelector('#'+id);
  let selected=0;
  const cards=places.map((p,i)=>{
@@ -16,6 +16,7 @@ export function createJourneyAtlas({dialog,places,go,archive,suspend,visited}){
   cards.forEach((card,n)=>{card.classList.toggle('selected',n===i);card.setAttribute('aria-pressed',String(n===i));card.classList.toggle('visited',visited.has(places[n].id));});
   find('atlas-chapter').textContent=`第${p.n}景 · ${p.small}`;find('atlas-title').textContent=p.name;find('atlas-line').textContent=p.sub;
   find('atlas-visited').textContent=`已寻访 ${visited.size} / ${places.length}`;
+  const memory=find('atlas-memory');if(memory){memory.textContent=note(p.id);memory.hidden=!memory.textContent;}
  }
  find('atlas-go').onclick=()=>{const i=selected;dialog.close();go(i);};
  find('atlas-archive').onclick=()=>{const i=selected;dialog.close();archive(i);};

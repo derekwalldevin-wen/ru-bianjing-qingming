@@ -2,6 +2,9 @@
 #shore-action[hidden]{display:none}
 #shore-action .eyebrow{font-size:10px;letter-spacing:2px;margin:0 0 9px}
 #shore-goal{font:17px/1.7 var(--display);margin:0}
+.shore-bearing{display:flex;align-items:center;gap:8px;margin:10px 0 0;color:var(--teal);font:12px/1.6 var(--serif);font-variant-numeric:tabular-nums}
+.shore-bearing[hidden]{display:none}
+#shore-bearing-arrow{display:inline-grid;place-items:center;width:24px;height:24px;flex:none;border:1px solid var(--line);border-radius:50%;font-size:17px;color:var(--red)}
 .shore-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
 .shore-actions button{min-height:44px;padding:8px;font:12px var(--serif);border-bottom:1px solid var(--line);color:var(--ink)}
 .shore-actions button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
@@ -10,6 +13,7 @@
  #shore-action{left:13px;top:184px;width:calc(100vw - 26px);max-width:calc(100vw - 26px);padding:10px 13px}
  #shore-action .eyebrow{font-size:9px;margin-bottom:4px}
  #shore-goal{font-size:15px;line-height:1.5}
+ .shore-bearing{margin-top:5px;font-size:11px}
  .shore-actions{margin-top:5px}
  body[data-shore-action=open] #walk-view{display:none}
 }
