@@ -1,5 +1,6 @@
 import {createRuralTerrain} from './rural-terrain.js?v=rural-terrain-v1';
 import {createBoatCrew} from './boat-crew.js?v=boat-life-v1';
+import {createBoatLantern} from './boat-lantern.js?v=harbor-light-v1';
 import {createSourceVillage} from './source-village.js?v=source-village-v1';
 import {createRuralGround,createRuralApproach} from './rural-approach.js?v=rural-approach-v1';
 import {ruralRoute} from './painting-layout.js?v=source-compound-v1';
@@ -9,7 +10,7 @@ import {createSourceNeighborhood} from './source-neighborhood.js?v=gate-neighbor
 import * as T from 'three';
 import {createSourceCompound,compoundIds} from './source-compound.js?v=source-compound-v1';
 import {mergeGeometries} from '../vendor/BufferGeometryUtils.js';
-import {createLighting} from './lighting.js?v=original-scroll-v1';
+import {createLighting} from './lighting.js?v=harbor-light-v1';
 import {createRiver} from './river.js?v=rural-approach-v1';
 import {applySurfaceTextures,projectSurfaceUV} from './surface-textures.js?v=rural-terrain-v1';
 import {createDetailBuilder} from './details.js?v=original-scroll-v1';
@@ -163,7 +164,8 @@ export function createWorld(scene,kit){
  const referenceTrees=placePaintedTreeGrove({kit,colliders,place});
  place('cart_ox',...heroFrames.carts.to,{yaw:Math.PI/2});collision(...heroFrames.carts.to,3.2,1.12);place('cart_hand',-57,18.3,{yaw:-Math.PI/2});collision(-57,18.3,1.8,.85);place('cart_hand',-35,-18.4,{yaw:Math.PI/2,scale:.9});collision(-35,-18.4,1.6,.8);place('cart_ox',77,18.4,{yaw:-Math.PI/2,scale:.92});collision(77,18.4,3,1.1);
  const river=createRiver(scene);
- function boat(name,x,z,size,moving=false){const g=createAssetObject(kit,name);g.position.set(x,.17,z);g.scale.setScalar(size);scene.add(g);const crew=createBoatCrew(kit),worker=crew.root;worker.position.set(name==='boat_cargo'?3.6:2.1,.75,.15);worker.rotation.y=Math.PI/2;g.add(worker);boats.push({g,worker,crew,name,x,z,moving,phase:rnd()*6});}
+ function boat(name,x,z,size,moving=false){const g=createAssetObject(kit,name);g.position.set(x,.17,z);g.scale.setScalar(size);scene.add(g);const crew=createBoatCrew(kit),worker=crew.root;worker.position.set(name==='boat_cargo'?3.6:2.1,.75,.15);worker.rotation.y=Math.PI/2;g.add(worker);const lantern=boats.length<2?createBoatLantern(g,m,'harbor-boat-'+boats.length):null;boats.push({g,worker,crew,lantern,name,x,z,moving,phase:rnd()*6});}
+ const preservedBoatParts=b=>[b.worker,...(b.lantern?[b.lantern.root]:[])];
  boat('boat_cargo',-38,4.8,1);boat('boat_cargo',42,4.8,.92);boat('boat_cargo',-23,-5.8,1.06);boat('boat_cargo',8,-1.8,.96,true);boat('boat_skiff',72,1.9,1,true);
  const roles=['vendor','porter','vendor','scholar','porter','vendor','woman','vendor','boatman','child','vendor','scholar'];
  function person(role,x,z,data={}){persons.push({role,x,z,scale:.95+rnd()*.1,phase:rnd()*6.28,activity:'stand',yaw:0,...data});}
@@ -209,12 +211,12 @@ export function createWorld(scene,kit){
  for(const [material,geometries] of batches){const mesh=new T.Mesh(mergeGeometries(geometries),material);mesh.name='街巷/岸坡与细部';mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);geometries.forEach(g=>g.dispose());}batches.clear();
  const shoreVegetation=createShoreVegetation(scene,bankSprigs,contactFloor);
  const ruralApproach=createRuralApproach(scene,{path:ruralGround,colliders,ground:contactFloor,stoneMaterial:m.stone});
- const lighting=createLighting(scene,m,river.material,lanternLocations);
+ const lighting=createLighting(scene,m,river.material,lanternLocations,boats.filter(b=>b.lantern).map(b=>b.lantern.source));
  const enhancedKinds=new Set();let assetQuality='standard',anisotropy=4,boatDetailVisible=false;
  function setBoatDetailVisible(refined){
   if(!enhancedKinds.has('boatdetail'))return false;
   const visual=createAssetObject(kit,refined?'detail_cargo_boat':'boat_cargo');
-  replaceObjectVisual(boats[0].g,visual,[boats[0].worker]);
+  replaceObjectVisual(boats[0].g,visual,preservedBoatParts(boats[0]));
   boats[0].worker.position.set(...(refined?[3.98,.665,.17]:[3.6,.75,.15]));boats[0].crew.setDeckVisible(!refined);boatDetailVisible=refined;river.invalidateReflection();return true;
  }
  function upgradeAsset(kind,nextScene){
@@ -233,7 +235,7 @@ export function createWorld(scene,kit){
    // frames; crowd, collision proxies, clock and group transforms never reset.
    for(const mesh of oldBatches){scene.remove(mesh);mesh.dispose();assetBatches.splice(assetBatches.indexOf(mesh),1);}
    for(const mesh of nextBatches){scene.add(mesh);assetBatches.push(mesh);}
-   nextBoats.forEach((g,i)=>{if(g)replaceObjectVisual(boats[i].g,g,[boats[i].worker]);});
+   nextBoats.forEach((g,i)=>{if(g)replaceObjectVisual(boats[i].g,g,preservedBoatParts(boats[i]));});
    if(kind==='life')for(const b of boats)b.crew.setMaterial(candidate);
   }else if(kind==='teadetail')teaFrontage.apply(candidate,assetBatches);
   else if(kind==='grassdetail')grassFrontage.apply(candidate,assetBatches);
@@ -241,7 +243,7 @@ export function createWorld(scene,kit){
   else if(kind==='bridge')replaceObjectVisual(bridgeObject,createAssetObject(candidate,'bridge'));
   else if(kind==='boatdetail'){
    const visual=createAssetObject(candidate,'detail_cargo_boat');
-   replaceObjectVisual(boats[0].g,visual,[boats[0].worker]);
+   replaceObjectVisual(boats[0].g,visual,preservedBoatParts(boats[0]));
    // The refined working deck is a visible surface, rather than an invisible
    // height offset; its top is 0.660m in the boat's local coordinate system.
    boats[0].worker.position.set(3.98,.665,.17);boats[0].crew.setDeckVisible(false);boatDetailVisible=true;
@@ -262,9 +264,9 @@ export function createWorld(scene,kit){
  function update(time,dt,reduced,night,camera,visitor){
   let started=profiler?.begin();shoreVegetation.update(time,reduced,camera);ruralApproach.update(time,reduced,camera);profiler?.end('shoreVegetation',started);
   started=profiler?.begin();closeups.update(camera);profiler?.end('closeups',started);
+  started=profiler?.begin();for(const b of boats){if(!reduced){b.g.position.y=.17+Math.sin(time*.6+b.phase)*.025;if(b.moving)b.g.position.x=((b.x+time*.36+108)%216)-108;}b.crew.update(time,dt,{reduced,moving:b.moving,phase:b.phase,observer:visitor});}profiler?.end('boats',started);
   started=profiler?.begin();lighting.update(time,dt,night,reduced,camera);profiler?.end('lighting',started);
   started=profiler?.begin();landscape.update(lighting.dusk);sourceVillage.update(dt,reduced);profiler?.end('landscape',started);
-  started=profiler?.begin();for(const b of boats){if(!reduced){b.g.position.y=.17+Math.sin(time*.6+b.phase)*.025;if(b.moving)b.g.position.x=((b.x+time*.36+108)%216)-108;}b.crew.update(time,dt,{reduced,moving:b.moving,phase:b.phase,observer:visitor});}profiler?.end('boats',started);
   started=profiler?.begin();river.update(dt,reduced,boats,lighting);profiler?.end('waterUpdate',started);
   started=profiler?.begin();crowd.update(time,reduced,camera,visitor);profiler?.end('crowd',started);
   started=profiler?.begin();for(const f of flags)f.mesh.rotation.y=reduced?0:Math.sin(time*.7+f.x)*.025;profiler?.end('flags',started);
