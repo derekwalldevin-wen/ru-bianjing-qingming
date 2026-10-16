@@ -6,7 +6,7 @@ import {places,tour} from './content.js?v=rural-approach-v1';
 import {createWalkMotion} from './walk-motion.js';
 import {createSceneTransition} from './scene-transition.js';
 import {observations} from './observations.js?v=source-village-v1';
-import {createFollowCamera} from './follow-camera.js?v=shore-action-v1';
+import {createFollowCamera} from './follow-camera.js?v=traveller-work-v1';
 export {observations} from './observations.js?v=source-village-v1';
 
 export const bridgeMarketPath=[[46,21,56],[87,40,33],[156,40,41],[223,35,49],reframe([-48,11,1],'market')];
@@ -18,12 +18,12 @@ export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>
  const lookController=createDirectionController({maxYawSpeed:Math.PI*2,maxYawAcceleration:Math.PI*10});
  const visitorPosition=new T.Vector3(),visitorForward=new T.Vector3(),follow=createFollowCamera(camera,clipCamera);
  Object.defineProperty(visitorPosition,'radius',{get:()=>world.visitorRadius??.32});
- let view=walkView==='follow'?'follow':'first',bodyYaw=0,speed=0;
+ let view=walkView==='follow'?'follow':'first',bodyYaw=0,speed=0,workDrop=0;
  let mode='overview',yaw=0,pitch=0,drag=null,reduced=false,index=0,tourIndex=0,tourTime=0,paused=false,enabled=true,detailReturn=null;
  const clear=()=>{keys.clear();drag=null;motion.reset();speed=0;};
  const syncControls=()=>{controls.enabled=enabled&&mode==='overview'&&!transition.active;controls.enableDamping=!reduced;controls.minDistance=detailReturn? .65:8;};
  const emitTour=()=>onTour(tourIndex,Math.min(1,tourTime/tour[tourIndex].duration),paused);
- function renderWalk(dt=0,snap=false){if(view==='follow')follow.update(visitorPosition,yaw,pitch,dt,{snap,reduced});else{camera.position.copy(visitorPosition);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);}}
+ function renderWalk(dt=0,snap=false){if(view==='follow')follow.update(visitorPosition,yaw,pitch,dt,{snap,reduced,focusDrop:workDrop});else{camera.position.copy(visitorPosition);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);}}
  function apply(pose){
   camera.position.fromArray(pose.position);controls.target.fromArray(pose.look);
   if(pose.mode==='walk'){
@@ -103,5 +103,5 @@ export function createNavigation(camera,canvas,world,onChange=()=>{},onTour=()=>
   if(progress>=1&&!paused){if(tourIndex<tour.length-1)startTour(tourIndex+1);else{paused=true;emitTour();}}
  }
  function setWalkView(value){if(!['first','follow'].includes(value)||transition.active||detailReturn)return false;view=value;clear();if(mode==='walk')renderWalk(0,true);return true;}
- return {stop:clear,go,walk,locate,overview,startTour,inspect,closeInspection,snapshot,escape,cancel,skip,update,controls,keys,setWalkView,get walkView(){return view;},get visitorPosition(){return visitorPosition;},get visitorForward(){return visitorForward.set(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));},get visitorState(){return {position:visitorPosition,yaw:bodyYaw,speed,lookYaw:yaw+Math.PI,lookPitch:pitch,visible:mode==='walk'&&view==='follow'&&!transition.active&&!detailReturn};},get mode(){return mode;},get index(){return index;},get transitioning(){return transition.active;},get pending(){return transition.pending;},get inspecting(){return !!detailReturn;},setReduced(value){reduced=value;transition.setReduced(value);syncControls();},setEnabled(value){enabled=value;clear();syncControls();},togglePause(){if(transition.active&&transition.pending?.mode==='tour'){const target={...transition.pending,paused:!transition.pending.paused};transition.request(target,{immediate:reduced});return;}paused=!paused;emitTour();},nextTour(){startTour(((transition.pending?.tourIndex??tourIndex)+1)%tour.length);}};
+ return {setWorkFocus(value){workDrop=T.MathUtils.clamp(value,0,.5);},stop:clear,go,walk,locate,overview,startTour,inspect,closeInspection,snapshot,escape,cancel,skip,update,controls,keys,setWalkView,get walkView(){return view;},get visitorPosition(){return visitorPosition;},get visitorForward(){return visitorForward.set(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));},get visitorState(){return {position:visitorPosition,yaw:bodyYaw,speed,lookYaw:yaw+Math.PI,lookPitch:pitch,firstPerson:mode==='walk'&&view==='first'&&!transition.active&&!detailReturn,visible:mode==='walk'&&view==='follow'&&!transition.active&&!detailReturn};},get mode(){return mode;},get index(){return index;},get transitioning(){return transition.active;},get pending(){return transition.pending;},get inspecting(){return !!detailReturn;},setReduced(value){reduced=value;transition.setReduced(value);syncControls();},setEnabled(value){enabled=value;clear();syncControls();},togglePause(){if(transition.active&&transition.pending?.mode==='tour'){const target={...transition.pending,paused:!transition.pending.paused};transition.request(target,{immediate:reduced});return;}paused=!paused;emitTour();},nextTour(){startTour(((transition.pending?.tourIndex??tourIndex)+1)%tour.length);}};
 }

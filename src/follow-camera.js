@@ -39,8 +39,8 @@ export function createFollowCollision(scene,world,camera){
 
 export function createFollowCamera(camera,clip=(a,b,out)=>out.copy(b)){
  const anchor=new T.Vector3(),desired=new T.Vector3(),safe=new T.Vector3(),blended=new T.Vector3(),target=new T.Vector3();
- return {update(position,yaw,pitch,dt,{snap=false,reduced=false}={}){
-  anchor.copy(position);anchor.y-=.4;
+ return {update(position,yaw,pitch,dt,{snap=false,reduced=false,focusDrop=0}={}){
+  anchor.copy(position);anchor.y-=.4+focusDrop;
   const elevation=T.MathUtils.clamp(.24-pitch,-.10,.85),distance=camera.aspect<.85?6.2:4.8;
   desired.set(Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation)).multiplyScalar(distance).add(anchor);
   clip(anchor,desired,safe);

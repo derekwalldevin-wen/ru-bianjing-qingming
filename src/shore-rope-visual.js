@@ -7,7 +7,7 @@ export function createShoreRopeVisual(scene,world){
   const points=[];
   for(let i=0;i<=48;i++){
    const t=i/48;let dx,dz;
-   if(kind==='tidy'||t<=.5){const u=kind==='tidy'?t:t*2,r=.045+.25*u,a=u*Math.PI*(kind==='tidy'?6:4);dx=Math.cos(a)*r;dz=Math.sin(a)*r;}
+   if(kind==='tidy'||t<=.5){const u=kind==='tidy'?t:t*2,r=.045+(kind==='tidy'?.40:.25)*u,a=u*Math.PI*(kind==='tidy'?6:4)+(kind==='tidy'?Math.PI:0);dx=Math.cos(a)*r;dz=Math.sin(a)*r;}
    else{const u=(t-.5)*2;dx=.295-(kind==='loose'?2.5:1.0)*u;dz=Math.sin(u*Math.PI*3)*.055+u*.05;}
    points.push(new T.Vector3(dx,world.contactFloor(x+dx,z+dz)+.032,dz));
   }
@@ -30,5 +30,18 @@ export function createShoreRopeVisual(scene,world){
   geometry.attributes.position.needsUpdate=true;geometry.computeVertexNormals();geometry.attributes.normal.needsUpdate=true;geometry.computeBoundingBox();geometry.computeBoundingSphere();
  }
  function dispose(){if(disposed)return;disposed=true;scene.remove(root);for(const g of geometries)g.dispose();material.dispose();texture.dispose();}
- setProgress(0);return {root,stats,setProgress,dispose};
+ function getCentres(kind='current'){
+  const source=kind==='current'?geometry.attributes.position.array:shapes[['loose','gathered','tidy'].indexOf(kind)],centres=[];
+  for(let row=0;row<=120;row++){const p=new T.Vector3();for(let j=0;j<6;j++){const i=(row*7+j)*3;p.add(new T.Vector3(source[i]+x,source[i+1],source[i+2]+z));}centres.push(p.multiplyScalar(1/6));}return centres;
+ }
+ function applyNodes(nodes){
+  current=-1;
+  const p=geometry.attributes.position,tangent=new T.Vector3(),normal=new T.Vector3(0,1,0),binormal=new T.Vector3(),q=new T.Vector3();
+  for(let row=0;row<nodes.length;row++){
+   tangent.subVectors(nodes[Math.min(row+1,nodes.length-1)],nodes[Math.max(0,row-1)]).normalize();normal.addScaledVector(tangent,-normal.dot(tangent));if(normal.lengthSq()<1e-8)normal.set(1,0,0).addScaledVector(tangent,-tangent.x);normal.normalize();binormal.crossVectors(tangent,normal).normalize();
+   for(let j=0;j<=6;j++){const a=j/6*Math.PI*2;q.copy(nodes[row]).addScaledVector(normal,Math.cos(a)*.019).addScaledVector(binormal,Math.sin(a)*.019);q.y=Math.max(q.y,world.contactFloor(q.x,q.z)+.004);p.setXYZ(row*7+j,q.x-x,q.y,q.z-z);}
+  }
+  p.needsUpdate=true;geometry.computeVertexNormals();geometry.attributes.normal.needsUpdate=true;geometry.computeBoundingBox();geometry.computeBoundingSphere();
+ }
+ setProgress(0);return {root,stats,setProgress,getCentres,applyNodes,dispose};
 }
